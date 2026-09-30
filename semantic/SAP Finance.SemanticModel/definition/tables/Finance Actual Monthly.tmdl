@@ -1,0 +1,111 @@
+/// Pre-aggregated monthly actual amounts by conformed Finance dimensions.
+table 'Finance Actual Monthly'
+
+	/// Monthly actual amount in local currency.
+	measure 'Monthly Actual Local Amount' = SUM('Finance Actual Monthly'[Actual Amount Local])
+		formatString: #,##0.00
+		displayFolder: Amounts
+
+	/// Monthly actual amount in group currency.
+	measure 'Monthly Actual Group Amount' = SUM('Finance Actual Monthly'[Actual Amount Group])
+		formatString: #,##0.00
+		displayFolder: Amounts
+
+	/// Monthly actual amount in transaction currency.
+	measure 'Monthly Actual Transaction Amount' = SUM('Finance Actual Monthly'[Actual Amount Transaction])
+		formatString: #,##0.00
+		displayFolder: Amounts
+
+	/// Monthly quantity from the derived actuals fact.
+	measure 'Monthly Actual Quantity' = SUM('Finance Actual Monthly'[Total Quantity])
+		formatString: #,##0.000
+		displayFolder: Volumes
+
+	/// Monthly finance line count at the current filter grain.
+	measure 'Monthly Actual Line Count' = SUM('Finance Actual Monthly'[Line Item Count])
+		formatString: #,##0
+		displayFolder: Counts
+
+	column 'Company Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: company_sk
+
+	column 'Division Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: division_sk
+
+	column 'Profit Center Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: profit_center_sk
+
+	column 'Cost Center Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: cost_center_sk
+
+	column 'GL Account Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: gl_account_sk
+
+	column 'Fiscal Period Key'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: fiscal_period_key
+
+	column 'Actual Amount Local'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: actual_amount_local
+
+	column 'Actual Amount Group'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: actual_amount_group
+
+	column 'Actual Amount Transaction'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: actual_amount_transaction
+
+	column 'Total Quantity'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: total_quantity
+
+	column 'Line Item Count'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: line_item_count
+
+	partition 'Finance Actual Monthly' = entity
+		mode: directLake
+		source
+			entityName: finance_actual_monthly
+			schemaName: mlv
+			expressionSource: 'DirectLake - SAP Finance'

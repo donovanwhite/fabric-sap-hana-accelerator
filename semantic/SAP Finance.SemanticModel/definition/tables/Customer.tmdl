@@ -1,0 +1,60 @@
+/// SCD2 customer master used for customer-related finance postings.
+table 'Customer'
+
+	/// Customer Code from the Gold Customer entity.
+	column 'Customer Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: KUNNR
+
+	/// Name from the Gold Customer entity.
+	column 'Name'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: NAME1
+
+	/// Name 2 from the Gold Customer entity.
+	column 'Name 2'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: NAME2
+
+	/// Country Code from the Gold Customer entity.
+	column 'Country Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: LAND1
+		dataCategory: Country
+
+	/// City from the Gold Customer entity.
+	column 'City'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: ORT01
+		dataCategory: City
+
+	/// Region from the Gold Customer entity.
+	column 'Region'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: REGIO
+
+	/// Customer Account Group from the Gold Customer entity.
+	column 'Customer Account Group'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: KTOKD
+
+	column 'Dimension Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: DIMENSION_SK
+
+	partition 'Customer' = entity
+		mode: directLake
+		source
+			entityName: customer
+			schemaName: dim
+			expressionSource: 'DirectLake - SAP Finance'

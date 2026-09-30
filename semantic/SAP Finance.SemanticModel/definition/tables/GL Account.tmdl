@@ -1,0 +1,58 @@
+/// SCD2 chart-of-accounts dimension with English account descriptions.
+table 'GL Account'
+
+	/// Chart of Accounts from the Gold GL Account entity.
+	column 'Chart of Accounts'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: KTOPL
+
+	/// GL Account Code from the Gold GL Account entity.
+	column 'GL Account Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: SAKNR
+
+	/// GL Account Short Name from the Gold GL Account entity.
+	column 'GL Account Short Name'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: TXT20
+
+	/// GL Account Name from the Gold GL Account entity.
+	column 'GL Account Name'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: TXT50
+
+	/// Balance Sheet Account Flag from the Gold GL Account entity.
+	column 'Balance Sheet Account Flag'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: XBILK
+
+	/// Profit and Loss Statement Type from the Gold GL Account entity.
+	column 'Profit and Loss Statement Type'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: GVTYP
+
+	/// GL Account Group from the Gold GL Account entity.
+	column 'GL Account Group'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: KTOKS
+
+	column 'Dimension Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: DIMENSION_SK
+
+	partition 'GL Account' = entity
+		mode: directLake
+		source
+			entityName: gl_account
+			schemaName: dim
+			expressionSource: 'DirectLake - SAP Finance'

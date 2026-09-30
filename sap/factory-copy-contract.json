@@ -1,0 +1,142 @@
+{
+  "database": "SAP_FIN_DB",
+  "loadStrategy": "FULL_SNAPSHOT",
+  "tables": [
+    {
+      "name": "ACDOCA",
+      "sourceObject": "SAPABAP1.ACDOCA",
+      "sinkFolder": "Files/bronze/sap_finance/acdoca",
+      "businessKey": [
+        "RCLNT",
+        "RLDNR",
+        "RBUKRS",
+        "GJAHR",
+        "BELNR",
+        "DOCLN"
+      ]
+    },
+    {
+      "name": "BKPF",
+      "sourceObject": "SAPABAP1.BKPF",
+      "sinkFolder": "Files/bronze/sap_finance/bkpf",
+      "businessKey": [
+        "MANDT",
+        "BUKRS",
+        "GJAHR",
+        "BELNR"
+      ]
+    },
+    {
+      "name": "T001",
+      "sourceObject": "SAPABAP1.T001",
+      "sinkFolder": "Files/bronze/sap_finance/t001",
+      "businessKey": [
+        "MANDT",
+        "BUKRS"
+      ]
+    },
+    {
+      "name": "CSKS",
+      "sourceObject": "SAPABAP1.CSKS",
+      "sinkFolder": "Files/bronze/sap_finance/csks",
+      "businessKey": [
+        "MANDT",
+        "KOKRS",
+        "KOSTL"
+      ]
+    },
+    {
+      "name": "CEPC",
+      "sourceObject": "SAPABAP1.CEPC",
+      "sinkFolder": "Files/bronze/sap_finance/cepc",
+      "businessKey": [
+        "MANDT",
+        "KOKRS",
+        "PRCTR"
+      ]
+    },
+    {
+      "name": "SKA1",
+      "sourceObject": "SAPABAP1.SKA1",
+      "sinkFolder": "Files/bronze/sap_finance/ska1",
+      "businessKey": [
+        "MANDT",
+        "KTOPL",
+        "SAKNR"
+      ]
+    },
+    {
+      "name": "SKAT",
+      "sourceObject": "SAPABAP1.SKAT",
+      "sinkFolder": "Files/bronze/sap_finance/skat",
+      "businessKey": [
+        "MANDT",
+        "SPRAS",
+        "KTOPL",
+        "SAKNR"
+      ]
+    },
+    {
+      "name": "LFA1",
+      "sourceObject": "SAPABAP1.LFA1",
+      "sinkFolder": "Files/bronze/sap_finance/lfa1",
+      "businessKey": [
+        "MANDT",
+        "LIFNR"
+      ]
+    },
+    {
+      "name": "KNA1",
+      "sourceObject": "SAPABAP1.KNA1",
+      "sinkFolder": "Files/bronze/sap_finance/kna1",
+      "businessKey": [
+        "MANDT",
+        "KUNNR"
+      ]
+    },
+    {
+      "name": "FAGLFLEXP",
+      "sourceObject": "SAPABAP1.FAGLFLEXP",
+      "sinkFolder": "Files/bronze/sap_finance/faglflexp",
+      "businessKey": [
+        "RCLNT",
+        "RLDNR",
+        "RBUKRS",
+        "RYEAR",
+        "RACCT",
+        "PRCTR",
+        "VERSN"
+      ]
+    },
+    {
+      "name": "BUDGET",
+      "sourceObject": "SAPDEMO.BUDGET",
+      "sinkFolder": "Files/bronze/sap_finance/budget",
+      "businessKey": [
+        "COMPANY_CODE",
+        "GL_ACCOUNT",
+        "COST_CENTER",
+        "PROFIT_CENTER",
+        "FISCAL_YEAR",
+        "FISCAL_PERIOD",
+        "PLAN_VERSION"
+      ]
+    },
+    {
+      "name": "DIVISION_REFERENCE",
+      "sourceObject": "SAPDEMO.DIVISION_REFERENCE",
+      "sinkFolder": "Files/bronze/sap_finance/division_reference",
+      "businessKey": [
+        "DIVISION_CODE"
+      ]
+    },
+    {
+      "name": "GL_ACCOUNT_REFERENCE",
+      "sourceObject": "SAPDEMO.GL_ACCOUNT_REFERENCE",
+      "sinkFolder": "Files/bronze/sap_finance/gl_account_reference",
+      "businessKey": [
+        "GL_ACCOUNT"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,265 @@
+relationship 'Finance Transaction Company'
+	fromCardinality: many
+	fromColumn: 'Finance Transaction'.'Company Key'
+	toCardinality: one
+	toColumn: 'Company'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Finance Transaction GL Account'
+	fromCardinality: many
+	fromColumn: 'Finance Transaction'.'GL Account Key'
+	toCardinality: one
+	toColumn: 'GL Account'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Finance Transaction Cost Center'
+	fromCardinality: many
+	fromColumn: 'Finance Transaction'.'Cost Center Key'
+	toCardinality: one
+	toColumn: 'Cost Center'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Finance Transaction Profit Center'
+	fromCardinality: many
+	fromColumn: 'Finance Transaction'.'Profit Center Key'
+	toCardinality: one
+	toColumn: 'Profit Center'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Finance Transaction Division'
+	fromCardinality: many
+	fromColumn: 'Finance Transaction'.'Division Key'
+	toCardinality: one
+	toColumn: 'Division'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Finance Transaction Vendor'
+	fromCardinality: many
+	fromColumn: 'Finance Transaction'.'Vendor Key'
+	toCardinality: one
+	toColumn: 'Vendor'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Finance Transaction Customer'
+	fromCardinality: many
+	fromColumn: 'Finance Transaction'.'Customer Key'
+	toCardinality: one
+	toColumn: 'Customer'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Finance Transaction Posting Date'
+	fromCardinality: many
+	fromColumn: 'Finance Transaction'.'Posting Date Key'
+	toCardinality: one
+	toColumn: 'Date'.'Date Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Finance Transaction Fiscal Period'
+	fromCardinality: many
+	fromColumn: 'Finance Transaction'.'Fiscal Period Key'
+	toCardinality: one
+	toColumn: 'Fiscal Period'.'Fiscal Period Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Budget Company'
+	fromCardinality: many
+	fromColumn: 'Budget and Plan'.'Company Key'
+	toCardinality: one
+	toColumn: 'Company'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Budget GL Account'
+	fromCardinality: many
+	fromColumn: 'Budget and Plan'.'GL Account Key'
+	toCardinality: one
+	toColumn: 'GL Account'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Budget Cost Center'
+	fromCardinality: many
+	fromColumn: 'Budget and Plan'.'Cost Center Key'
+	toCardinality: one
+	toColumn: 'Cost Center'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Budget Profit Center'
+	fromCardinality: many
+	fromColumn: 'Budget and Plan'.'Profit Center Key'
+	toCardinality: one
+	toColumn: 'Profit Center'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Budget Division'
+	fromCardinality: many
+	fromColumn: 'Budget and Plan'.'Division Key'
+	toCardinality: one
+	toColumn: 'Division'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Finance Actual Monthly Company'
+	fromCardinality: many
+	fromColumn: 'Finance Actual Monthly'.'Company Key'
+	toCardinality: one
+	toColumn: 'Company'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Finance Actual Monthly GL Account'
+	fromCardinality: many
+	fromColumn: 'Finance Actual Monthly'.'GL Account Key'
+	toCardinality: one
+	toColumn: 'GL Account'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Finance Actual Monthly Cost Center'
+	fromCardinality: many
+	fromColumn: 'Finance Actual Monthly'.'Cost Center Key'
+	toCardinality: one
+	toColumn: 'Cost Center'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Finance Actual Monthly Profit Center'
+	fromCardinality: many
+	fromColumn: 'Finance Actual Monthly'.'Profit Center Key'
+	toCardinality: one
+	toColumn: 'Profit Center'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Finance Actual Monthly Division'
+	fromCardinality: many
+	fromColumn: 'Finance Actual Monthly'.'Division Key'
+	toCardinality: one
+	toColumn: 'Division'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Vendor Spend Monthly Company'
+	fromCardinality: many
+	fromColumn: 'Vendor Spend Monthly'.'Company Key'
+	toCardinality: one
+	toColumn: 'Company'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Vendor Spend Monthly GL Account'
+	fromCardinality: many
+	fromColumn: 'Vendor Spend Monthly'.'GL Account Key'
+	toCardinality: one
+	toColumn: 'GL Account'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Vendor Spend Monthly Division'
+	fromCardinality: many
+	fromColumn: 'Vendor Spend Monthly'.'Division Key'
+	toCardinality: one
+	toColumn: 'Division'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Vendor Spend Monthly Vendor'
+	fromCardinality: many
+	fromColumn: 'Vendor Spend Monthly'.'Vendor Key'
+	toCardinality: one
+	toColumn: 'Vendor'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'GL Balance Monthly Company'
+	fromCardinality: many
+	fromColumn: 'GL Balance Monthly'.'Company Key'
+	toCardinality: one
+	toColumn: 'Company'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'GL Balance Monthly GL Account'
+	fromCardinality: many
+	fromColumn: 'GL Balance Monthly'.'GL Account Key'
+	toCardinality: one
+	toColumn: 'GL Account'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'GL Balance Monthly Cost Center'
+	fromCardinality: many
+	fromColumn: 'GL Balance Monthly'.'Cost Center Key'
+	toCardinality: one
+	toColumn: 'Cost Center'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'GL Balance Monthly Profit Center'
+	fromCardinality: many
+	fromColumn: 'GL Balance Monthly'.'Profit Center Key'
+	toCardinality: one
+	toColumn: 'Profit Center'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'GL Balance Monthly Division'
+	fromCardinality: many
+	fromColumn: 'GL Balance Monthly'.'Division Key'
+	toCardinality: one
+	toColumn: 'Division'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Plan vs Actual Monthly Company'
+	fromCardinality: many
+	fromColumn: 'Plan vs Actual Monthly'.'Company Key'
+	toCardinality: one
+	toColumn: 'Company'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Plan vs Actual Monthly GL Account'
+	fromCardinality: many
+	fromColumn: 'Plan vs Actual Monthly'.'GL Account Key'
+	toCardinality: one
+	toColumn: 'GL Account'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Plan vs Actual Monthly Cost Center'
+	fromCardinality: many
+	fromColumn: 'Plan vs Actual Monthly'.'Cost Center Key'
+	toCardinality: one
+	toColumn: 'Cost Center'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Plan vs Actual Monthly Profit Center'
+	fromCardinality: many
+	fromColumn: 'Plan vs Actual Monthly'.'Profit Center Key'
+	toCardinality: one
+	toColumn: 'Profit Center'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Plan vs Actual Monthly Division'
+	fromCardinality: many
+	fromColumn: 'Plan vs Actual Monthly'.'Division Key'
+	toCardinality: one
+	toColumn: 'Division'.'Dimension Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Budget Fiscal Period'
+	fromCardinality: many
+	fromColumn: 'Budget and Plan'.'Fiscal Period Key'
+	toCardinality: one
+	toColumn: 'Fiscal Period'.'Fiscal Period Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Finance Actual Monthly Fiscal Period'
+	fromCardinality: many
+	fromColumn: 'Finance Actual Monthly'.'Fiscal Period Key'
+	toCardinality: one
+	toColumn: 'Fiscal Period'.'Fiscal Period Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Vendor Spend Monthly Fiscal Period'
+	fromCardinality: many
+	fromColumn: 'Vendor Spend Monthly'.'Fiscal Period Key'
+	toCardinality: one
+	toColumn: 'Fiscal Period'.'Fiscal Period Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'GL Balance Monthly Fiscal Period'
+	fromCardinality: many
+	fromColumn: 'GL Balance Monthly'.'Fiscal Period Key'
+	toCardinality: one
+	toColumn: 'Fiscal Period'.'Fiscal Period Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Plan vs Actual Monthly Fiscal Period'
+	fromCardinality: many
+	fromColumn: 'Plan vs Actual Monthly'.'Fiscal Period Key'
+	toCardinality: one
+	toColumn: 'Fiscal Period'.'Fiscal Period Key'
+	crossFilteringBehavior: oneDirection

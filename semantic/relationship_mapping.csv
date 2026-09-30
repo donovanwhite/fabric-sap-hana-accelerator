@@ -1,0 +1,39 @@
+relationship_name,fact_schema,fact_table,fact_column,dimension_schema,dimension_table,dimension_column,cardinality,cross_filter,active,status,notes
+Finance Transaction Company,fct,finance_transaction,COMPANY_SK,dim,company,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Conformed SCD2 surrogate key
+Finance Transaction GL Account,fct,finance_transaction,GL_ACCOUNT_SK,dim,gl_account,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Conformed SCD2 surrogate key
+Finance Transaction Cost Center,fct,finance_transaction,COST_CENTER_SK,dim,cost_center,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Conformed SCD2 surrogate key
+Finance Transaction Profit Center,fct,finance_transaction,PROFIT_CENTER_SK,dim,profit_center,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Conformed SCD2 surrogate key
+Finance Transaction Division,fct,finance_transaction,DIVISION_SK,dim,division,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Conformed SCD2 surrogate key
+Finance Transaction Vendor,fct,finance_transaction,VENDOR_SK,dim,vendor,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Nullable for non-vendor postings
+Finance Transaction Customer,fct,finance_transaction,CUSTOMER_SK,dim,customer,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Nullable for non-customer postings
+Finance Transaction Posting Date,fct,finance_transaction,POSTING_DATE_SK,dim,date,DATE_SK,Many-to-one,Single,Yes,Ready,Primary active date relationship
+Finance Transaction Fiscal Period,fct,finance_transaction,FISCAL_PERIOD_KEY,dim,fiscal_period,FISCAL_PERIOD_KEY,Many-to-one,Single,Yes,Ready,SAP fiscal period including special periods 13 through 16
+Budget Company,fct,budget,COMPANY_SK,dim,company,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Current planning dimension version assigned upstream
+Budget GL Account,fct,budget,GL_ACCOUNT_SK,dim,gl_account,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Current planning dimension version assigned upstream
+Budget Cost Center,fct,budget,COST_CENTER_SK,dim,cost_center,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Nullable for FAGLFLEXP plan rows
+Budget Profit Center,fct,budget,PROFIT_CENTER_SK,dim,profit_center,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Conformed planning dimension
+Budget Division,fct,budget,DIVISION_SK,dim,division,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Derived from profit center upstream
+Finance Actual Monthly Company,mlv,finance_actual_monthly,company_sk,dim,company,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Derived monthly fact
+Finance Actual Monthly GL Account,mlv,finance_actual_monthly,gl_account_sk,dim,gl_account,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Derived monthly fact
+Finance Actual Monthly Cost Center,mlv,finance_actual_monthly,cost_center_sk,dim,cost_center,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Derived monthly fact
+Finance Actual Monthly Profit Center,mlv,finance_actual_monthly,profit_center_sk,dim,profit_center,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Derived monthly fact
+Finance Actual Monthly Division,mlv,finance_actual_monthly,division_sk,dim,division,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Derived monthly fact
+Vendor Spend Monthly Company,mlv,vendor_spend_monthly,company_sk,dim,company,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Derived vendor fact
+Vendor Spend Monthly GL Account,mlv,vendor_spend_monthly,gl_account_sk,dim,gl_account,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Derived vendor fact
+Vendor Spend Monthly Division,mlv,vendor_spend_monthly,division_sk,dim,division,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Derived vendor fact
+Vendor Spend Monthly Vendor,mlv,vendor_spend_monthly,vendor_sk,dim,vendor,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Vendor is mandatory in this FMLV
+GL Balance Monthly Company,mlv,gl_balance_monthly,company_sk,dim,company,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Derived monthly GL movement fact
+GL Balance Monthly GL Account,mlv,gl_balance_monthly,gl_account_sk,dim,gl_account,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Derived monthly GL movement fact
+GL Balance Monthly Cost Center,mlv,gl_balance_monthly,cost_center_sk,dim,cost_center,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Derived monthly GL movement fact
+GL Balance Monthly Profit Center,mlv,gl_balance_monthly,profit_center_sk,dim,profit_center,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Derived monthly GL movement fact
+GL Balance Monthly Division,mlv,gl_balance_monthly,division_sk,dim,division,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Derived monthly GL movement fact
+Plan vs Actual Monthly Company,mlv,plan_vs_actual_monthly,company_sk,dim,company,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Combined actual and planning fact
+Plan vs Actual Monthly GL Account,mlv,plan_vs_actual_monthly,gl_account_sk,dim,gl_account,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Combined actual and planning fact
+Plan vs Actual Monthly Cost Center,mlv,plan_vs_actual_monthly,cost_center_sk,dim,cost_center,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Nullable for plan rows without cost center
+Plan vs Actual Monthly Profit Center,mlv,plan_vs_actual_monthly,profit_center_sk,dim,profit_center,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Combined actual and planning fact
+Plan vs Actual Monthly Division,mlv,plan_vs_actual_monthly,division_sk,dim,division,DIMENSION_SK,Many-to-one,Single,Yes,Ready,Combined actual and planning fact
+Budget Fiscal Period,fct,budget,FISCAL_PERIOD_KEY,dim,fiscal_period,FISCAL_PERIOD_KEY,Many-to-one,Single,Yes,Ready,SAP fiscal period including special periods 13 through 16
+Finance Actual Monthly Fiscal Period,mlv,finance_actual_monthly,fiscal_period_key,dim,fiscal_period,FISCAL_PERIOD_KEY,Many-to-one,Single,Yes,Ready,SAP fiscal period including special periods 13 through 16
+Vendor Spend Monthly Fiscal Period,mlv,vendor_spend_monthly,fiscal_period_key,dim,fiscal_period,FISCAL_PERIOD_KEY,Many-to-one,Single,Yes,Ready,SAP fiscal period including special periods 13 through 16
+GL Balance Monthly Fiscal Period,mlv,gl_balance_monthly,fiscal_period_key,dim,fiscal_period,FISCAL_PERIOD_KEY,Many-to-one,Single,Yes,Ready,SAP fiscal period including special periods 13 through 16
+Plan vs Actual Monthly Fiscal Period,mlv,plan_vs_actual_monthly,fiscal_period_key,dim,fiscal_period,FISCAL_PERIOD_KEY,Many-to-one,Single,Yes,Ready,SAP fiscal period including special periods 13 through 16

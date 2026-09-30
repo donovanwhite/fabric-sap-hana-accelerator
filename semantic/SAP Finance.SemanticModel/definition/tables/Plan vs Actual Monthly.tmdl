@@ -1,0 +1,130 @@
+/// Pre-aggregated actual, budget, forecast, and plan values by month and version.
+table 'Plan vs Actual Monthly'
+
+	/// Actual amount represented in the plan-versus-actual serving fact.
+	measure 'Plan vs Actual Actual Amount' = CALCULATE(SUM('Plan vs Actual Monthly'[Actual Amount Local]), REMOVEFILTERS('Plan vs Actual Monthly'[Plan Source], 'Plan vs Actual Monthly'[Scenario], 'Plan vs Actual Monthly'[Plan Version]))
+		formatString: #,##0.00
+		displayFolder: Amounts
+
+	/// Gross actual financial activity using the absolute value of each aggregate row.
+	measure 'Gross Actual Activity' = CALCULATE(SUMX('Plan vs Actual Monthly', ABS('Plan vs Actual Monthly'[Actual Amount Local])), REMOVEFILTERS('Plan vs Actual Monthly'[Plan Source], 'Plan vs Actual Monthly'[Scenario], 'Plan vs Actual Monthly'[Plan Version]))
+		formatString: #,##0.00
+		displayFolder: Amounts
+
+	/// Plan or budget amount represented in the plan-versus-actual serving fact.
+	measure 'Plan vs Actual Plan Amount' = SUM('Plan vs Actual Monthly'[Plan Amount Local])
+		formatString: #,##0.00
+		displayFolder: Amounts
+
+	/// Forecast amount represented in the plan-versus-actual serving fact.
+	measure 'Plan vs Actual Forecast Amount' = SUM('Plan vs Actual Monthly'[Forecast Amount Local])
+		formatString: #,##0.00
+		displayFolder: Amounts
+
+	/// Actual amount less plan amount.
+	measure 'Variance to Plan' = [Plan vs Actual Actual Amount] - [Plan vs Actual Plan Amount]
+		formatString: #,##0.00
+		displayFolder: Variance
+
+	/// Actual amount less forecast amount.
+	measure 'Variance to Forecast' = [Plan vs Actual Actual Amount] - [Plan vs Actual Forecast Amount]
+		formatString: #,##0.00
+		displayFolder: Variance
+
+	/// Variance to plan divided by the absolute plan amount.
+	measure 'Variance to Plan Percentage' = DIVIDE([Variance to Plan], ABS([Plan vs Actual Plan Amount]))
+		formatString: 0.00%
+		displayFolder: Variance
+
+	/// Variance to forecast divided by the absolute forecast amount.
+	measure 'Variance to Forecast Percentage' = DIVIDE([Variance to Forecast], ABS([Plan vs Actual Forecast Amount]))
+		formatString: 0.00%
+		displayFolder: Variance
+
+	column 'Company Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: company_sk
+
+	column 'Division Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: division_sk
+
+	column 'Profit Center Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: profit_center_sk
+
+	column 'Cost Center Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: cost_center_sk
+
+	column 'GL Account Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: gl_account_sk
+
+	column 'Fiscal Period Key'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: fiscal_period_key
+
+	/// Plan Source from the Gold Plan vs Actual Monthly entity.
+	column 'Plan Source'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: plan_source
+
+	/// Scenario from the Gold Plan vs Actual Monthly entity.
+	column 'Scenario'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: scenario
+
+	/// Plan Version from the Gold Plan vs Actual Monthly entity.
+	column 'Plan Version'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: plan_version
+
+	column 'Actual Amount Local'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: actual_amount_local
+
+	column 'Plan Amount Local'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: plan_amount_local
+
+	column 'Forecast Amount Local'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: forecast_amount_local
+
+	partition 'Plan vs Actual Monthly' = entity
+		mode: directLake
+		source
+			entityName: plan_vs_actual_monthly
+			schemaName: mlv
+			expressionSource: 'DirectLake - SAP Finance'

@@ -1,0 +1,9 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definitionProperties/2.0.0/schema.json",
+  "version": "4.0",
+  "datasetReference": {
+    "byConnection": {
+      "connectionString": "Data Source=powerbi://api.powerbi.com/v1.0/myorg/ws_finance;initial catalog=\"SAP Finance\";integrated security=ClaimsToken;semanticmodelid=7f649a72-ce03-4788-8bc1-a92ca208867b"
+    }
+  }
+}

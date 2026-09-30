@@ -1,0 +1,58 @@
+/// SCD2 cost center master at SAP client, controlling area, and cost center grain.
+table 'Cost Center'
+
+	/// Controlling Area from the Gold Cost Center entity.
+	column 'Controlling Area'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: KOKRS
+
+	/// Cost Center Code from the Gold Cost Center entity.
+	column 'Cost Center Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: KOSTL
+
+	/// Company Code from the Gold Cost Center entity.
+	column 'Company Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: BUKRS
+
+	/// Profit Center Code from the Gold Cost Center entity.
+	column 'Profit Center Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: PRCTR
+
+	/// Responsible Person from the Gold Cost Center entity.
+	column 'Responsible Person'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: VERAK
+
+	/// Cost Center Category from the Gold Cost Center entity.
+	column 'Cost Center Category'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: KOSAR
+
+	/// Hierarchy Area from the Gold Cost Center entity.
+	column 'Hierarchy Area'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: KHINR
+
+	column 'Dimension Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: DIMENSION_SK
+
+	partition 'Cost Center' = entity
+		mode: directLake
+		source
+			entityName: cost_center
+			schemaName: dim
+			expressionSource: 'DirectLake - SAP Finance'

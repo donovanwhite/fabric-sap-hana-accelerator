@@ -1,0 +1,60 @@
+/// SCD2 vendor master used for vendor-spend analysis.
+table 'Vendor'
+
+	/// Vendor Code from the Gold Vendor entity.
+	column 'Vendor Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: LIFNR
+
+	/// Name from the Gold Vendor entity.
+	column 'Name'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: NAME1
+
+	/// Name 2 from the Gold Vendor entity.
+	column 'Name 2'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: NAME2
+
+	/// Country Code from the Gold Vendor entity.
+	column 'Country Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: LAND1
+		dataCategory: Country
+
+	/// City from the Gold Vendor entity.
+	column 'City'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: ORT01
+		dataCategory: City
+
+	/// Region from the Gold Vendor entity.
+	column 'Region'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: REGIO
+
+	/// Vendor Account Group from the Gold Vendor entity.
+	column 'Vendor Account Group'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: KTOKK
+
+	column 'Dimension Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: DIMENSION_SK
+
+	partition 'Vendor' = entity
+		mode: directLake
+		source
+			entityName: vendor
+			schemaName: dim
+			expressionSource: 'DirectLake - SAP Finance'

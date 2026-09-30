@@ -1,0 +1,17 @@
+MANDT,SPRAS,KTOPL,SAKNR,TXT20,TXT50
+100,E,ESKZ,400100,Electricity Revenue,Electricity Revenue
+100,E,ESKZ,400200,Network Service Reve,Network Service Revenue
+100,E,ESKZ,500100,Primary Energy - Coa,Primary Energy - Coal
+100,E,ESKZ,500200,Primary Energy - Die,Primary Energy - Diesel
+100,E,ESKZ,500300,Primary Energy - Wat,Primary Energy - Water
+100,E,ESKZ,510100,Employee Costs,Employee Costs
+100,E,ESKZ,520100,Maintenance Material,Maintenance Materials
+100,E,ESKZ,520200,Maintenance Contract,Maintenance Contractors
+100,E,ESKZ,530100,ICT and Telecoms,ICT and Telecoms
+100,E,ESKZ,540100,Fleet and Travel,Fleet and Travel
+100,E,ESKZ,150100,Generation Plant and,Generation Plant and Equipment
+100,E,ESKZ,150200,Transmission Infrast,Transmission Infrastructure
+100,E,ESKZ,150300,Distribution Infrast,Distribution Infrastructure
+100,E,ESKZ,210100,Trade Payables,Trade Payables
+100,E,ESKZ,110100,Trade Receivables,Trade Receivables
+100,E,ESKZ,100100,Cash and Cash Equiva,Cash and Cash Equivalents

@@ -1,0 +1,64 @@
+/// Contiguous calendar date dimension for posting-date analysis.
+table 'Date'
+
+	dataCategory: Time
+
+	/// Date from the Gold Date entity.
+	column 'Date'
+		dataType: dateTime
+		summarizeBy: none
+		formatString: yyyy-MM-dd
+		sourceColumn: CALENDAR_DATE
+
+	column 'Date Key'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: DATE_SK
+
+	/// Year from the Gold Date entity.
+	column 'Year'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: CALENDAR_YEAR
+
+	/// Quarter Number from the Gold Date entity.
+	column 'Quarter Number'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: QUARTER_NUMBER
+
+	/// Month Number from the Gold Date entity.
+	column 'Month Number'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: MONTH_NUMBER
+
+	/// Month from the Gold Date entity.
+	column 'Month'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: MONTH_NAME
+		sortByColumn: 'Month Number'
+
+	hierarchy 'Calendar Hierarchy'
+
+		level Year
+			column: Year
+
+		level Quarter
+			column: 'Quarter Number'
+
+		level Month
+			column: Month
+
+		level Date
+			column: Date
+
+	partition 'Date' = entity
+		mode: directLake
+		source
+			entityName: date
+			schemaName: dim
+			expressionSource: 'DirectLake - SAP Finance'

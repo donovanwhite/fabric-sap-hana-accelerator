@@ -1,0 +1,19 @@
+# Local editor settings
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Operating system files
+Thumbs.db
+.DS_Store

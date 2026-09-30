@@ -1,0 +1,10 @@
+{
+  "sourceConnectionId": "f5251d49-ef4e-4099-9466-f0fb5511c8d6",
+  "sourceConnectionDisplayName": "conn_sap_finance_sql",
+  "sourceAuthentication": "Organizational account (OAuth2)",
+  "sinkConnectionId": "37755759-2ce2-4e3e-bd01-cc637136a4f3",
+  "sinkWorkspaceId": "0448ed4f-990e-4171-83f1-ea2a293e12d9",
+  "sinkLakehouseId": "333965d7-4af9-49d1-bfeb-78cabeccbf8b",
+  "manualBindingRequired": false,
+  "reason": "Bound to the Organizational Account OAuth connection created in the Fabric designer."
+}

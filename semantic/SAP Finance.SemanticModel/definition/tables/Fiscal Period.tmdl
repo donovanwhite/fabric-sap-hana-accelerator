@@ -1,0 +1,68 @@
+/// SAP fiscal periods 1 through 16 by fiscal year, including special periods.
+table 'Fiscal Period'
+
+	column 'Fiscal Period Key'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: FISCAL_PERIOD_KEY
+
+	/// Fiscal Year from the Gold Fiscal Period entity.
+	column 'Fiscal Year'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: FISCAL_YEAR
+
+	/// Fiscal Period from the Gold Fiscal Period entity.
+	column 'Fiscal Period'
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: FISCAL_PERIOD
+
+	/// Fiscal Period Name from the Gold Fiscal Period entity.
+	column 'Fiscal Period Name'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: FISCAL_PERIOD_NAME
+		sortByColumn: 'Fiscal Period'
+
+	/// Fiscal Quarter from the Gold Fiscal Period entity.
+	column 'Fiscal Quarter'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: FISCAL_QUARTER
+
+	/// Is Special Period from the Gold Fiscal Period entity.
+	column 'Is Special Period'
+		dataType: boolean
+		summarizeBy: none
+		sourceColumn: IS_SPECIAL_PERIOD
+
+	/// Fiscal Year Period from the Gold Fiscal Period entity.
+	column 'Fiscal Year Period'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: FISCAL_YEAR_PERIOD_LABEL
+		sortByColumn: 'Fiscal Year Period Sort'
+
+	column 'Fiscal Year Period Sort'
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: FISCAL_YEAR_PERIOD_SORT
+
+	hierarchy 'Fiscal Period Hierarchy'
+
+		level 'Fiscal Year'
+			column: 'Fiscal Year'
+
+		level 'Fiscal Period'
+			column: 'Fiscal Period Name'
+
+	partition 'Fiscal Period' = entity
+		mode: directLake
+		source
+			entityName: fiscal_period
+			schemaName: dim
+			expressionSource: 'DirectLake - SAP Finance'

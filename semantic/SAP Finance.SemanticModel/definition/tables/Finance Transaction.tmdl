@@ -1,0 +1,228 @@
+/// Atomic SAP ACDOCA finance fact at ledger document-line grain.
+table 'Finance Transaction'
+
+	/// Signed local-currency amount across finance lines.
+	measure 'Total Local Amount' = SUM('Finance Transaction'[Local Amount])
+		formatString: #,##0.00
+		displayFolder: Amounts
+
+	/// Signed group-currency amount across finance lines.
+	measure 'Total Group Amount' = SUM('Finance Transaction'[Group Amount])
+		formatString: #,##0.00
+		displayFolder: Amounts
+
+	/// Signed transaction-currency amount across finance lines.
+	measure 'Total Transaction Amount' = SUM('Finance Transaction'[Transaction Amount])
+		formatString: #,##0.00
+		displayFolder: Amounts
+
+	/// Signed additional-currency amount across finance lines.
+	measure 'Total Other Amount' = SUM('Finance Transaction'[Other Amount])
+		formatString: #,##0.00
+		displayFolder: Amounts
+
+	/// Total quantity recorded on finance lines.
+	measure 'Total Quantity' = SUM('Finance Transaction'[Quantity])
+		formatString: #,##0.000
+		displayFolder: Volumes
+
+	/// Number of atomic ACDOCA document lines.
+	measure 'Finance Line Count' = COUNTROWS('Finance Transaction')
+		formatString: #,##0
+		displayFolder: Counts
+
+	/// Distinct SAP finance documents by company, fiscal year, and document number.
+	measure 'Finance Document Count' = COUNTROWS(SUMMARIZE('Finance Transaction', 'Finance Transaction'[Company Code], 'Finance Transaction'[Fiscal Year], 'Finance Transaction'[Document Number]))
+		formatString: #,##0
+		displayFolder: Counts
+
+	column 'Posting Date Key'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: POSTING_DATE_SK
+
+	column 'Fiscal Period Key'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: FISCAL_PERIOD_KEY
+
+	column 'Company Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: COMPANY_SK
+
+	column 'GL Account Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: GL_ACCOUNT_SK
+
+	column 'Cost Center Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: COST_CENTER_SK
+
+	column 'Profit Center Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: PROFIT_CENTER_SK
+
+	column 'Division Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: DIVISION_SK
+
+	column 'Vendor Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: VENDOR_SK
+
+	column 'Customer Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: CUSTOMER_SK
+
+	/// Ledger from the Gold Finance Transaction entity.
+	column 'Ledger'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: RLDNR
+
+	column 'Company Code'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: RBUKRS
+
+	column 'Fiscal Year'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: GJAHR
+
+	/// Document Number from the Gold Finance Transaction entity.
+	column 'Document Number'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: BELNR
+
+	/// Document Line Number from the Gold Finance Transaction entity.
+	column 'Document Line Number'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: DOCLN
+
+	/// Debit Credit Indicator from the Gold Finance Transaction entity.
+	column 'Debit Credit Indicator'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: DRCRK
+
+	/// Document Type from the Gold Finance Transaction entity.
+	column 'Document Type'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: BLART
+
+	/// Reference Transaction Type from the Gold Finance Transaction entity.
+	column 'Reference Transaction Type'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: AWTYP
+
+	/// Line Item Text from the Gold Finance Transaction entity.
+	column 'Line Item Text'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: SGTXT
+
+	/// Local Currency from the Gold Finance Transaction entity.
+	column 'Local Currency'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: RHCUR
+
+	/// Group Currency from the Gold Finance Transaction entity.
+	column 'Group Currency'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: RKCUR
+
+	/// Transaction Currency from the Gold Finance Transaction entity.
+	column 'Transaction Currency'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: RWCUR
+
+	/// Document Header Text from the Gold Finance Transaction entity.
+	column 'Document Header Text'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: DOCUMENT_HEADER_TEXT
+
+	/// Reversal Document from the Gold Finance Transaction entity.
+	column 'Reversal Document'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: REVERSAL_DOCUMENT
+
+	column 'Local Amount'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: AMOUNT_LOCAL
+
+	column 'Group Amount'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: AMOUNT_GROUP
+
+	column 'Transaction Amount'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: AMOUNT_TRANSACTION
+
+	column 'Other Amount'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: AMOUNT_OTHER
+
+	column 'Quantity'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: QUANTITY
+
+	partition 'Finance Transaction' = entity
+		mode: directLake
+		source
+			entityName: finance_transaction
+			schemaName: fct
+			expressionSource: 'DirectLake - SAP Finance'

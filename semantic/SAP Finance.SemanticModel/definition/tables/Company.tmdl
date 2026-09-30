@@ -1,0 +1,54 @@
+/// SCD2 company master used to filter actual and planning facts.
+table 'Company'
+
+	/// Company Code from the Gold Company entity.
+	column 'Company Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: BUKRS
+
+	/// Company Name from the Gold Company entity.
+	column 'Company Name'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: BUTXT
+
+	/// City from the Gold Company entity.
+	column 'City'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: ORT01
+		dataCategory: City
+
+	/// Country Code from the Gold Company entity.
+	column 'Country Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: LAND1
+		dataCategory: Country
+
+	/// Currency Code from the Gold Company entity.
+	column 'Currency Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: WAERS
+
+	/// Chart of Accounts from the Gold Company entity.
+	column 'Chart of Accounts'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: KTOPL
+
+	column 'Dimension Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: DIMENSION_SK
+
+	partition 'Company' = entity
+		mode: directLake
+		source
+			entityName: company
+			schemaName: dim
+			expressionSource: 'DirectLake - SAP Finance'

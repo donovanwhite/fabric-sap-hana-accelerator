@@ -1,0 +1,4 @@
+database 'SAP Finance'
+	compatibilityLevel: 1702
+	compatibilityMode: powerBI
+	language: 7177

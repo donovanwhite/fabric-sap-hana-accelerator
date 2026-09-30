@@ -1,0 +1,155 @@
+/// Pre-aggregated monthly debit, credit, and net GL movement.
+table 'GL Balance Monthly'
+
+	/// Debit movement in local currency.
+	measure 'Total Debit Amount Local' = SUM('GL Balance Monthly'[Debit Amount Local])
+		formatString: #,##0.00
+		displayFolder: Movement
+
+	/// Credit movement in local currency.
+	measure 'Total Credit Amount Local' = SUM('GL Balance Monthly'[Credit Amount Local])
+		formatString: #,##0.00
+		displayFolder: Movement
+
+	/// Signed net GL movement in local currency.
+	measure 'Total Net Movement Local' = SUM('GL Balance Monthly'[Net Movement Local])
+		formatString: #,##0.00
+		displayFolder: Movement
+
+	/// Total debit plus total credit movement in local currency.
+	measure 'Gross GL Activity' = [Total Debit Amount Local] + [Total Credit Amount Local]
+		formatString: #,##0.00
+		displayFolder: Movement
+
+	/// Net movement for the immediately preceding available fiscal period.
+	measure 'Prior Period Net Movement' = ```
+			VAR _currentPeriodKey = MAX('Fiscal Period'[Fiscal Period Key])
+			VAR _priorPeriodKey =
+				MAXX(
+					TOPN(
+						1,
+						FILTER(
+							ALL('Fiscal Period'[Fiscal Period Key]),
+							'Fiscal Period'[Fiscal Period Key] < _currentPeriodKey
+						),
+						'Fiscal Period'[Fiscal Period Key],
+						DESC
+					),
+					'Fiscal Period'[Fiscal Period Key]
+				)
+			RETURN
+				CALCULATE(
+					[Total Net Movement Local],
+					REMOVEFILTERS('Fiscal Period'),
+					TREATAS({_priorPeriodKey}, 'Fiscal Period'[Fiscal Period Key])
+				)
+			```
+		formatString: #,##0.00
+		displayFolder: Movement Trend
+
+	/// Current net movement less prior-period net movement.
+	measure 'Net Movement Change' = [Total Net Movement Local] - [Prior Period Net Movement]
+		formatString: #,##0.00
+		displayFolder: Movement Trend
+
+	/// Net movement change divided by the absolute prior-period movement.
+	measure 'Net Movement Change Percentage' = DIVIDE([Net Movement Change], ABS([Prior Period Net Movement]))
+		formatString: 0.00%
+		displayFolder: Movement Trend
+
+	/// Neutral direction indicator; color shows direction rather than business favorability.
+	measure 'Net Movement Direction' = ```
+			VAR _change = [Net Movement Change]
+			RETURN
+				SWITCH(
+					TRUE(),
+					ISBLANK(_change), UNICHAR(9898) & " No prior period",
+					_change > 0, UNICHAR(128309) & " " & UNICHAR(9650) & " Up",
+					_change < 0, UNICHAR(128992) & " " & UNICHAR(9660) & " Down",
+					UNICHAR(9898) & " Flat"
+				)
+			```
+		formatString: 0
+		displayFolder: Movement Trend
+
+	/// Finance line count represented by GL movement.
+	measure 'GL Movement Line Count' = SUM('GL Balance Monthly'[Line Item Count])
+		formatString: #,##0
+		displayFolder: Counts
+
+	column 'Company Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: company_sk
+
+	column 'Division Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: division_sk
+
+	column 'Profit Center Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: profit_center_sk
+
+	column 'Cost Center Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: cost_center_sk
+
+	column 'GL Account Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: gl_account_sk
+
+	column 'Fiscal Period Key'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: fiscal_period_key
+
+	column 'Debit Amount Local'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: debit_amount_local
+
+	column 'Credit Amount Local'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: credit_amount_local
+
+	column 'Net Movement Local'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: net_movement_local
+
+	column 'Line Item Count'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: line_item_count
+
+	partition 'GL Balance Monthly' = entity
+		mode: directLake
+		source
+			entityName: gl_balance_monthly
+			schemaName: mlv
+			expressionSource: 'DirectLake - SAP Finance'

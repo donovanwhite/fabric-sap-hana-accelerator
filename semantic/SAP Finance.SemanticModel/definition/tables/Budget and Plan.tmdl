@@ -1,0 +1,113 @@
+/// Atomic budget and FAGLFLEXP planning values by scenario, source, and version.
+table 'Budget and Plan'
+
+	/// Total budget or plan amount in local currency.
+	measure 'Total Plan Amount' = SUM('Budget and Plan'[Plan Amount Local])
+		formatString: #,##0.00
+		displayFolder: Planning
+
+	/// Total forecast amount in local currency.
+	measure 'Total Forecast Amount' = SUM('Budget and Plan'[Forecast Amount Local])
+		formatString: #,##0.00
+		displayFolder: Planning
+
+	/// Plan amount for rows that contain a comparable forecast value.
+	measure 'Budget Baseline Amount' = CALCULATE([Total Plan Amount], KEEPFILTERS(NOT ISBLANK('Budget and Plan'[Forecast Amount Local])))
+		formatString: #,##0.00
+		displayFolder: Planning
+
+	/// Forecast amount less its comparable budget baseline.
+	measure 'Forecast vs Budget' = [Total Forecast Amount] - [Budget Baseline Amount]
+		formatString: #,##0.00
+		displayFolder: Planning
+
+	/// Forecast variance divided by the absolute comparable budget baseline.
+	measure 'Forecast vs Budget Percentage' = DIVIDE([Forecast vs Budget], ABS([Budget Baseline Amount]))
+		formatString: 0.00%
+		displayFolder: Planning
+
+	/// Number of atomic planning rows.
+	measure 'Planning Row Count' = COUNTROWS('Budget and Plan')
+		formatString: #,##0
+		displayFolder: Counts
+
+	column 'Fiscal Period Key'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: FISCAL_PERIOD_KEY
+
+	column 'Company Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: COMPANY_SK
+
+	column 'GL Account Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: GL_ACCOUNT_SK
+
+	column 'Cost Center Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: COST_CENTER_SK
+
+	column 'Profit Center Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: PROFIT_CENTER_SK
+
+	column 'Division Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: DIVISION_SK
+
+	/// Plan Source from the Gold Budget and Plan entity.
+	column 'Plan Source'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: PLAN_SOURCE
+
+	/// Scenario from the Gold Budget and Plan entity.
+	column 'Scenario'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: SCENARIO
+
+	/// Plan Version from the Gold Budget and Plan entity.
+	column 'Plan Version'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: PLAN_VERSION
+
+	column 'Plan Amount Local'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: PLAN_AMOUNT_LOCAL
+
+	column 'Forecast Amount Local'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: FORECAST_AMOUNT_LOCAL
+
+	partition 'Budget and Plan' = entity
+		mode: directLake
+		source
+			entityName: budget
+			schemaName: fct
+			expressionSource: 'DirectLake - SAP Finance'

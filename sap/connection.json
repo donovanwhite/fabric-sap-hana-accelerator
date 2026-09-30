@@ -1,0 +1,9 @@
+{
+  "workspaceId": "0448ed4f-990e-4171-83f1-ea2a293e12d9",
+  "workspaceName": "ws_finance",
+  "sqlDatabaseItemId": "de838c75-ed06-488c-ae5c-7bb3484e8e53",
+  "displayName": "SAP_FIN_DB",
+  "serverFqdn": "ost3lz7ptsiu5juhpwpzeywqv4-j7wuqbaotfyuda7r5ivcspqs3e.database.fabric.microsoft.com,1433",
+  "databaseName": "SAP_FIN_DB-de838c75-ed06-488c-ae5c-7bb3484e8e53",
+  "collation": "Latin1_General_100_BIN2_UTF8"
+}

@@ -1,0 +1,52 @@
+/// SCD2 profit center master used for divisional and segment reporting.
+table 'Profit Center'
+
+	/// Controlling Area from the Gold Profit Center entity.
+	column 'Controlling Area'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: KOKRS
+
+	/// Profit Center Code from the Gold Profit Center entity.
+	column 'Profit Center Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: PRCTR
+
+	/// Company Code from the Gold Profit Center entity.
+	column 'Company Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: BUKRS
+
+	/// Responsible Person from the Gold Profit Center entity.
+	column 'Responsible Person'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: VERAK
+
+	/// Hierarchy Area from the Gold Profit Center entity.
+	column 'Hierarchy Area'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: KHINR
+
+	/// Segment from the Gold Profit Center entity.
+	column 'Segment'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: SEGMENT
+
+	column 'Dimension Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: DIMENSION_SK
+
+	partition 'Profit Center' = entity
+		mode: directLake
+		source
+			entityName: profit_center
+			schemaName: dim
+			expressionSource: 'DirectLake - SAP Finance'

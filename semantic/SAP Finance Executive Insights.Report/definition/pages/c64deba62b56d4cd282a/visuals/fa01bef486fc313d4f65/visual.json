@@ -1,0 +1,477 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.4.0/schema.json",
+  "name": "fa01bef486fc313d4f65",
+  "position": {
+    "x": 24,
+    "y": 452,
+    "z": 15,
+    "height": 230,
+    "width": 1232,
+    "tabOrder": 976
+  },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GL Account"
+                    }
+                  },
+                  "Property": "GL Account Code"
+                }
+              },
+              "queryRef": "GL Account.GL Account Code",
+              "nativeQueryRef": "GL Account Code",
+              "active": true
+            },
+            {
+              "field": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GL Account"
+                    }
+                  },
+                  "Property": "GL Account Name"
+                }
+              },
+              "queryRef": "GL Account.GL Account Name",
+              "nativeQueryRef": "GL Account Name",
+              "active": true
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GL Balance Monthly"
+                    }
+                  },
+                  "Property": "Total Debit Amount Local"
+                }
+              },
+              "queryRef": "GL Balance Monthly.Total Debit Amount Local",
+              "nativeQueryRef": "Total Debit Amount Local",
+              "active": true
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GL Balance Monthly"
+                    }
+                  },
+                  "Property": "Total Credit Amount Local"
+                }
+              },
+              "queryRef": "GL Balance Monthly.Total Credit Amount Local",
+              "nativeQueryRef": "Total Credit Amount Local",
+              "active": true
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GL Balance Monthly"
+                    }
+                  },
+                  "Property": "Total Net Movement Local"
+                }
+              },
+              "queryRef": "GL Balance Monthly.Total Net Movement Local",
+              "nativeQueryRef": "Total Net Movement Local",
+              "active": true
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GL Balance Monthly"
+                    }
+                  },
+                  "Property": "Prior Period Net Movement"
+                }
+              },
+              "queryRef": "GL Balance Monthly.Prior Period Net Movement",
+              "nativeQueryRef": "Prior Period Net Movement",
+              "active": true
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GL Balance Monthly"
+                    }
+                  },
+                  "Property": "Net Movement Change Percentage"
+                }
+              },
+              "queryRef": "GL Balance Monthly.Net Movement Change Percentage",
+              "nativeQueryRef": "Net Movement Change Percentage",
+              "active": true
+            },
+            {
+              "field": {
+                "Measure": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "GL Balance Monthly"
+                    }
+                  },
+                  "Property": "Net Movement Direction"
+                }
+              },
+              "queryRef": "GL Balance Monthly.Net Movement Direction",
+              "nativeQueryRef": "Net Movement Direction",
+              "active": true
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "grid": [
+        {
+          "properties": {
+            "gridVertical": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "gridHorizontal": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "rowPadding": {
+              "expr": {
+                "Literal": {
+                  "Value": "4D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "columnHeaders": [
+        {
+          "properties": {
+            "bold": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "9D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "values": [
+        {
+          "properties": {
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "9D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "total": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "background": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "color": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#FFFFFF'"
+                    }
+                  }
+                }
+              }
+            },
+            "transparency": {
+              "expr": {
+                "Literal": {
+                  "Value": "0D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "border": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "color": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#D8E0E8'"
+                    }
+                  }
+                }
+              }
+            },
+            "radius": {
+              "expr": {
+                "Literal": {
+                  "Value": "8D"
+                }
+              }
+            },
+            "width": {
+              "expr": {
+                "Literal": {
+                  "Value": "1D"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "visualHeader": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'GL Account Drill-down'"
+                }
+              }
+            },
+            "fontFamily": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Segoe UI Semibold'"
+                }
+              }
+            },
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "11D"
+                }
+              }
+            },
+            "fontColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "Literal": {
+                      "Value": "'#1F2937'"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "general": [
+        {
+          "properties": {
+            "altText": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Net Movement by Division chart'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  },
+  "filterConfig": {
+    "filters": [
+      {
+        "name": "fa01bef486fc313d4f65field0",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "GL Account"
+              }
+            },
+            "Property": "GL Account Code"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "fa01bef486fc313d4f65field1",
+        "field": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "GL Account"
+              }
+            },
+            "Property": "GL Account Name"
+          }
+        },
+        "type": "Categorical"
+      },
+      {
+        "name": "fa01bef486fc313d4f65field2",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "GL Balance Monthly"
+              }
+            },
+            "Property": "Total Debit Amount Local"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "fa01bef486fc313d4f65field3",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "GL Balance Monthly"
+              }
+            },
+            "Property": "Total Credit Amount Local"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "fa01bef486fc313d4f65field4",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "GL Balance Monthly"
+              }
+            },
+            "Property": "Total Net Movement Local"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "fa01bef486fc313d4f65field5",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "GL Balance Monthly"
+              }
+            },
+            "Property": "Prior Period Net Movement"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "fa01bef486fc313d4f65field6",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "GL Balance Monthly"
+              }
+            },
+            "Property": "Net Movement Change Percentage"
+          }
+        },
+        "type": "Advanced"
+      },
+      {
+        "name": "fa01bef486fc313d4f65field7",
+        "field": {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "GL Balance Monthly"
+              }
+            },
+            "Property": "Net Movement Direction"
+          }
+        },
+        "type": "Advanced"
+      }
+    ]
+  }
+}

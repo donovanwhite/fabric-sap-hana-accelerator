@@ -1,0 +1,37 @@
+{
+  "name": "Eskom Executive",
+  "dataColors": [
+    "#00529B",
+    "#78BE20",
+    "#00AEEF",
+    "#F6C700",
+    "#F58220",
+    "#D22630",
+    "#003A70",
+    "#7A869A"
+  ],
+  "background": "#F4F7FA",
+  "foreground": "#1F2937",
+  "tableAccent": "#00529B",
+  "good": "#78BE20",
+  "neutral": "#F6C700",
+  "bad": "#D22630",
+  "textClasses": {
+    "callout": {
+      "fontFace": "Segoe UI Semibold",
+      "color": "#1F2937"
+    },
+    "title": {
+      "fontFace": "Segoe UI Semibold",
+      "color": "#1F2937"
+    },
+    "header": {
+      "fontFace": "Segoe UI Semibold",
+      "color": "#1F2937"
+    },
+    "label": {
+      "fontFace": "Segoe UI",
+      "color": "#4B5563"
+    }
+  }
+}

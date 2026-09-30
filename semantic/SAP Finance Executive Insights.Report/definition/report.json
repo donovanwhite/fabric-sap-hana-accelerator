@@ -1,0 +1,60 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/report/3.0.0/schema.json",
+  "themeCollection": {
+    "baseTheme": {
+      "name": "CY24SU10",
+      "reportVersionAtImport": {
+        "visual": "1.8.99",
+        "report": "2.0.99",
+        "page": "1.3.99"
+      },
+      "type": "SharedResources"
+    },
+    "customTheme": {
+      "name": "EskomExecutive",
+      "reportVersionAtImport": {
+        "visual": "1.8.99",
+        "report": "2.0.99",
+        "page": "1.3.99"
+      },
+      "type": "SharedResources"
+    }
+  },
+  "resourcePackages": [
+    {
+      "name": "SharedResources",
+      "type": "SharedResources",
+      "items": [
+        {
+          "name": "CY24SU10",
+          "path": "BaseThemes/CY24SU10.json",
+          "type": "BaseTheme"
+        },
+        {
+          "name": "EskomExecutive",
+          "path": "CustomThemes/EskomExecutive.json",
+          "type": "CustomTheme"
+        }
+      ]
+    },
+    {
+      "name": "RegisteredResources",
+      "type": "RegisteredResources",
+      "items": [
+        {
+          "name": "Eskom-logo-white.png",
+          "path": "Eskom-logo-white.png",
+          "type": "Image"
+        }
+      ]
+    }
+  ],
+  "settings": {
+    "useStylableVisualContainerHeader": true,
+    "exportDataMode": "AllowSummarized",
+    "defaultDrillFilterOtherVisuals": true,
+    "allowChangeFilterTypes": true,
+    "useEnhancedTooltips": true,
+    "useDefaultAggregateDisplayName": true
+  }
+}

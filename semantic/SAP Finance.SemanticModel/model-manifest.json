@@ -1,0 +1,9 @@
+{
+  "modelName": "SAP Finance",
+  "workspaceId": "0448ed4f-990e-4171-83f1-ea2a293e12d9",
+  "lakehouseId": "afdc0c5b-8ace-4cee-940f-b17076bcc0a7",
+  "tableCount": 15,
+  "columnCount": 144,
+  "relationshipCount": 38,
+  "measureCount": 41
+}

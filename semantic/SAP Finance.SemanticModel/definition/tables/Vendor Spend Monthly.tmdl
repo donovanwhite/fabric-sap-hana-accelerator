@@ -1,0 +1,102 @@
+/// Pre-aggregated monthly vendor spend by company, division, vendor, and GL account.
+table 'Vendor Spend Monthly'
+
+	/// Vendor spend in local currency.
+	measure 'Vendor Spend Local Amount' = SUM('Vendor Spend Monthly'[Spend Amount Local])
+		formatString: #,##0.00
+		displayFolder: Amounts
+
+	/// Gross vendor activity using the absolute value of each vendor aggregate row.
+	measure 'Gross Vendor Spend Local' = SUMX('Vendor Spend Monthly', ABS('Vendor Spend Monthly'[Spend Amount Local]))
+		formatString: #,##0.00
+		displayFolder: Amounts
+
+	/// Vendor spend in group currency.
+	measure 'Vendor Spend Group Amount' = SUM('Vendor Spend Monthly'[Spend Amount Group])
+		formatString: #,##0.00
+		displayFolder: Amounts
+
+	/// Gross vendor activity in group currency using absolute aggregate values.
+	measure 'Gross Vendor Spend Group' = SUMX('Vendor Spend Monthly', ABS('Vendor Spend Monthly'[Spend Amount Group]))
+		formatString: #,##0.00
+		displayFolder: Amounts
+
+	/// Finance line count represented by vendor spend.
+	measure 'Vendor Spend Line Count' = SUM('Vendor Spend Monthly'[Line Item Count])
+		formatString: #,##0
+		displayFolder: Counts
+
+	/// Weighted average absolute vendor line value across the selected aggregate rows.
+	measure 'Weighted Average Vendor Line Value' = DIVIDE(SUMX('Vendor Spend Monthly', 'Vendor Spend Monthly'[Average Line Item Value] * 'Vendor Spend Monthly'[Line Item Count]), SUM('Vendor Spend Monthly'[Line Item Count]))
+		formatString: #,##0.00
+		displayFolder: Amounts
+
+	column 'Company Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: company_sk
+
+	column 'Division Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: division_sk
+
+	column 'Vendor Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: vendor_sk
+
+	column 'GL Account Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: gl_account_sk
+
+	column 'Fiscal Period Key'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: fiscal_period_key
+
+	column 'Spend Amount Local'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: spend_amount_local
+
+	column 'Spend Amount Group'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: spend_amount_group
+
+	column 'Line Item Count'
+		dataType: int64
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: line_item_count
+
+	column 'Average Line Item Value'
+		dataType: decimal
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: average_line_item_value
+
+	partition 'Vendor Spend Monthly' = entity
+		mode: directLake
+		source
+			entityName: vendor_spend_monthly
+			schemaName: mlv
+			expressionSource: 'DirectLake - SAP Finance'

@@ -1,0 +1,28 @@
+/// SCD2 Eskom division master derived from the profit center hierarchy.
+table 'Division'
+
+	/// Division Code from the Gold Division entity.
+	column 'Division Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: DIVISION_CODE
+
+	/// Division Name from the Gold Division entity.
+	column 'Division Name'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: DIVISION_NAME
+
+	column 'Dimension Key'
+		dataType: string
+		isHidden
+		isAvailableInMdx: false
+		summarizeBy: none
+		sourceColumn: DIMENSION_SK
+
+	partition 'Division' = entity
+		mode: directLake
+		source
+			entityName: division
+			schemaName: dim
+			expressionSource: 'DirectLake - SAP Finance'

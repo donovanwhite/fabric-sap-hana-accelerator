@@ -1,0 +1,17 @@
+GL_ACCOUNT,GL_ACCOUNT_NAME,FINANCE_CATEGORY
+400100,Electricity Revenue,REVENUE
+400200,Network Service Revenue,REVENUE
+500100,Primary Energy - Coal,PRIMARY_ENERGY
+500200,Primary Energy - Diesel,PRIMARY_ENERGY
+500300,Primary Energy - Water,PRIMARY_ENERGY
+510100,Employee Costs,OPEX
+520100,Maintenance Materials,OPEX
+520200,Maintenance Contractors,OPEX
+530100,ICT and Telecoms,OPEX
+540100,Fleet and Travel,OPEX
+150100,Generation Plant and Equipment,CAPEX
+150200,Transmission Infrastructure,CAPEX
+150300,Distribution Infrastructure,CAPEX
+210100,Trade Payables,BALANCE_SHEET
+110100,Trade Receivables,BALANCE_SHEET
+100100,Cash and Cash Equivalents,BALANCE_SHEET
