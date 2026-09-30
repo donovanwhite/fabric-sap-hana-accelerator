@@ -24,15 +24,16 @@ Notebook 06 requires `lh_gld_finance` as its default Lakehouse.
 
 ## Run order
 
-1. `00_Setup_and_Namespace_Validation`
-2. `01_Bronze_CSV_Inventory`
-3. `02_Bronze_CSV_to_Silver_Delta`
-4. `03_Gold_SCD2_Dimensions`
-5. `04_Gold_Atomic_Finance_Fact`
-6. `05_Gold_Budget_Fact`
-7. `06_Gold_Materialized_Lake_Views`
-8. `07_End_to_End_Validation`
-9. `08_Bronze_Snapshot_Cleanup`
+1. `00_Source_Full_Snapshot`
+2. `00_Setup_and_Namespace_Validation`
+3. `01_Bronze_CSV_Inventory`
+4. `02_Bronze_CSV_to_Silver_Delta`
+5. `03_Gold_SCD2_Dimensions`
+6. `04_Gold_Atomic_Finance_Fact`
+7. `05_Gold_Budget_Fact`
+8. `06_Gold_Materialized_Lake_Views`
+9. `07_End_to_End_Validation`
+10. `08_Bronze_Snapshot_Cleanup`
 
 Notebooks 04 and 05 can run in parallel after notebook 03.
 

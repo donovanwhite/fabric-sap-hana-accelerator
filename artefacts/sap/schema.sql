@@ -130,11 +130,15 @@ BEGIN
         KTOPL varchar(4) NOT NULL,
         SAKNR varchar(10) NOT NULL,
         XBILK varchar(1) NULL,
-        GVTYP varchar(2) NULL,
+        GVTYP varchar(30) NULL,
         KTOKS varchar(4) NULL,
         CONSTRAINT PK_SKA1 PRIMARY KEY (MANDT, KTOPL, SAKNR)
     );
 END;
+GO
+
+IF COL_LENGTH(N'SAPABAP1.SKA1', N'GVTYP') < 30
+    ALTER TABLE SAPABAP1.SKA1 ALTER COLUMN GVTYP varchar(30) NULL;
 GO
 
 IF OBJECT_ID(N'SAPABAP1.SKAT', N'U') IS NULL

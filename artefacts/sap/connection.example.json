@@ -1,0 +1,9 @@
+{
+  "workspaceId": "<workspace-id>",
+  "workspaceName": "<workspace-name>",
+  "sqlDatabaseItemId": "<sql-database-item-id>",
+  "displayName": "SAP_FIN_DB",
+  "serverFqdn": "<server>.database.fabric.microsoft.com,1433",
+  "databaseName": "<database-name>",
+  "collation": "Latin1_General_100_BIN2_UTF8"
+}

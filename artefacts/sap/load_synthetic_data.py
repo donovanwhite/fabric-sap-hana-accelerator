@@ -45,7 +45,7 @@ EXIT_ERROR = 2
 LOGGER = logging.getLogger(__name__)
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_SOURCE_ROOT = SCRIPT_DIR.parent / "sap_synthetic_data" / "sap"
-DEFAULT_CONNECTION = SCRIPT_DIR / "connection.json"
+DEFAULT_CONNECTION = SCRIPT_DIR / "connection.example.json"
 EXTRACT_DATE_PATTERN = re.compile(r"_(\d{8})\.csv$", re.IGNORECASE)
 
 

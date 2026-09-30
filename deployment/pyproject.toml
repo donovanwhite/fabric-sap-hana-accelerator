@@ -1,0 +1,17 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fabric-sap-hana-deployer"
+version = "0.1.0"
+description = "Deploy the SAP Finance Fabric solution accelerator"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+dependencies = []
+
+[project.scripts]
+fabric-sap-deploy = "fabric_sap_deployer.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/fabric_sap_deployer"]

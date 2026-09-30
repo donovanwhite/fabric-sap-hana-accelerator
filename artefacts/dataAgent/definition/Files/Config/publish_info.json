@@ -1,0 +1,4 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/dataAgent/definition/publishInfo/1.0.0/schema.json",
+  "description": "The SAP Finance Data Agent provides conversational analysis of synthetic SAP Finance data stored in the lh_gld_finance Gold Lakehouse. It answers questions about actuals, budget, forecast, F1-F5 plans, GL movement, vendor activity, companies, divisions, profit centres, cost centres, customers, fiscal periods, document lines, and reversals. It supports multi-turn investigation, period-over-period analysis, actual-versus-plan comparisons, account and organisational drill-downs, and chart-ready outputs. The agent prioritises curated monthly views for fast summaries and uses atomic Gold facts for detailed analysis. All results are synthetic demonstration data and must not be interpreted as actual Eskom performance."
+}

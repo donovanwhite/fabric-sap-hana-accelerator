@@ -79,7 +79,7 @@ tables, or reference tables in a real environment.
 |------|---------|
 | [schema.sql](./schema.sql) | Idempotent SQL source schema and demo loader controls |
 | [load_synthetic_data.py](./load_synthetic_data.py) | Initial seed and deterministic daily delta loader |
-| [connection.json](./connection.json) | Non-secret Fabric SQL endpoint metadata |
+| [connection.example.json](./connection.example.json) | Template for optional manual loader endpoint metadata |
 | [factory-copy-contract.json](./factory-copy-contract.json) | Table, business key, source-object, and Bronze folder mapping |
 | [hana_projections.sql](./hana_projections.sql) | HANA-compatible business column projections |
 
@@ -92,27 +92,30 @@ tables, or reference tables in a real environment.
 * Synthetic CSV folders under `sap_synthetic_data/sap`
 
 No SQL password is stored. The loader acquires an Entra token from Azure CLI.
+The automated deployment does not use this loader. For manual development,
+copy `connection.example.json` to an ignored local file and pass it with
+`--connection-config`.
 
 ## Deploy the schema
 
-The schema is already deployed to the demo database. To redeploy it
-idempotently, execute [schema.sql](./schema.sql) against the server and database
-in [connection.json](./connection.json). Legacy tracking objects may remain in
-an existing demo deployment for compatibility, but the active pipeline does
-not query them.
+The automated installer creates the database schema and loads all synthetic
+rows through its generated SQL project. [schema.sql](./schema.sql) remains the
+authoritative schema source for that deployment.
 
 ## Load the initial snapshot
 
 From this folder:
 
 ```powershell
-uv run .\load_synthetic_data.py --mode initial
+uv run .\load_synthetic_data.py --mode initial `
+  --connection-config .\connection.local.json
 ```
 
 If `pyodbc` is already installed, run the script directly:
 
 ```powershell
-python .\load_synthetic_data.py --mode initial
+python .\load_synthetic_data.py --mode initial `
+  --connection-config .\connection.local.json
 ```
 
 To load from another local or OneLake-synced Bronze root:

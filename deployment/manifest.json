@@ -1,0 +1,27 @@
+{
+  "solution": "Eskom SAP Finance Fabric solution accelerator",
+  "version": "0.1.0",
+  "items": {
+    "lakehouses": [
+      "lh_brz_slv_finance",
+      "lh_gld_finance"
+    ],
+    "sqlDatabase": "SAP_FIN_DB",
+    "notebooks": [
+      "00_Source_Full_Snapshot",
+      "00_Setup_and_Namespace_Validation",
+      "01_Bronze_CSV_Inventory",
+      "02_Bronze_CSV_to_Silver_Delta",
+      "03_Gold_SCD2_Dimensions",
+      "04_Gold_Atomic_Finance_Fact",
+      "05_Gold_Budget_Fact",
+      "06_Gold_Materialized_Lake_Views",
+      "07_End_to_End_Validation",
+      "08_Bronze_Snapshot_Cleanup"
+    ],
+    "semanticModel": "SAP Finance",
+    "report": "SAP Finance Executive Insights",
+    "dataAgent": "Finance Agent",
+    "pipeline": "pl_full_medallion_sap_finance"
+  }
+}

@@ -13,6 +13,7 @@ __pycache__/
 .env
 .env.*
 !.env.example
+connection.local.json
 
 # Operating system files
 Thumbs.db

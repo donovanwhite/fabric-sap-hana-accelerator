@@ -1,0 +1,318 @@
+{
+  "properties": {
+    "activities": [
+      {
+        "name": "set_run_upper_bound",
+        "description": "Capture one immutable UTC upper bound for this run.",
+        "type": "SetVariable",
+        "dependsOn": [],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "variableName": "run_upper_bound_utc",
+          "value": {
+            "value": "@formatDateTime(utcNow(),'yyyy-MM-ddTHH:mm:ss.fff')",
+            "type": "Expression"
+          }
+        }
+      },
+      {
+        "name": "nb_source_full_snapshot",
+        "description": "Read full SAP_FIN_DB projections and write dated Bronze CSV snapshots.",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "set_run_upper_bound",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 1,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "notebookId": "__SOURCE_NOTEBOOK_ID__",
+          "workspaceId": "__WORKSPACE_ID__",
+          "parameters": {
+            "sql_server": {
+              "value": "__SQL_SERVER__",
+              "type": "string"
+            },
+            "sql_database": {
+              "value": "__SQL_DATABASE__",
+              "type": "string"
+            },
+            "processing_date": {
+              "value": {
+                "value": "@formatDateTime(variables('run_upper_bound_utc'),'yyyy-MM-dd')",
+                "type": "Expression"
+              },
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "name": "nb_schema_val",
+        "description": "schema validation pre-run",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "nb_source_full_snapshot",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "notebookId": "378594a7-2b2f-4d78-97ca-7b4997fbc202",
+          "workspaceId": "0448ed4f-990e-4171-83f1-ea2a293e12d9"
+        }
+      },
+      {
+        "name": "nb_tbl_inventory",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "nb_schema_val",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "notebookId": "608c836a-24ac-43d7-9275-ff9ba2bca24e",
+          "workspaceId": "0448ed4f-990e-4171-83f1-ea2a293e12d9",
+          "parameters": {
+            "processing_date": {
+              "value": {
+                "value": "@formatDateTime(variables('run_upper_bound_utc'),'yyyy-MM-dd')",
+                "type": "Expression"
+              },
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "name": "nb_brz_slv_sap",
+        "description": "Transform SAP HANA Finance CSV records from Bronze layer to Silver",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "nb_tbl_inventory",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "notebookId": "8cea0e2b-5a4d-4996-aa55-a8b9d63faa36",
+          "workspaceId": "0448ed4f-990e-4171-83f1-ea2a293e12d9",
+          "parameters": {
+            "processing_date": {
+              "value": {
+                "value": "@formatDateTime(variables('run_upper_bound_utc'),'yyyy-MM-dd')",
+                "type": "Expression"
+              },
+              "type": "string"
+            }
+          }
+        }
+      },
+      {
+        "name": "nb_gld_dim_sap",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "nb_brz_slv_sap",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "notebookId": "272aa892-f5e9-498f-af1d-054dda8b6d3c",
+          "workspaceId": "0448ed4f-990e-4171-83f1-ea2a293e12d9"
+        }
+      },
+      {
+        "name": "nb_gld_fct_fin_sap",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "nb_gld_dim_sap",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "notebookId": "8483e349-36e3-4102-b69f-e24a807df8fb",
+          "workspaceId": "0448ed4f-990e-4171-83f1-ea2a293e12d9"
+        }
+      },
+      {
+        "name": "nb_gld_bgt_sap",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "nb_gld_dim_sap",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "notebookId": "30005a8a-313e-48c0-9576-23c6b0bdd59c",
+          "workspaceId": "0448ed4f-990e-4171-83f1-ea2a293e12d9"
+        }
+      },
+      {
+        "name": "nb_gld_fct_mlv",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "nb_gld_fct_fin_sap",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          },
+          {
+            "activity": "nb_gld_bgt_sap",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "notebookId": "097d87ac-6153-49d9-94a6-6a53c042173e",
+          "workspaceId": "0448ed4f-990e-4171-83f1-ea2a293e12d9"
+        }
+      },
+      {
+        "name": "nb_full_validation",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "nb_gld_fct_mlv",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "notebookId": "5f94118d-3996-43a2-be7b-7b9524a2c6f0",
+          "workspaceId": "0448ed4f-990e-4171-83f1-ea2a293e12d9"
+        }
+      },
+      {
+        "name": "nb_bronze_cleanup",
+        "description": "Retain the current Bronze snapshot and delete older snapshots after successful validation.",
+        "type": "TridentNotebook",
+        "dependsOn": [
+          {
+            "activity": "nb_full_validation",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.12:00:00",
+          "retry": 0,
+          "retryIntervalInSeconds": 30,
+          "secureOutput": false,
+          "secureInput": false
+        },
+        "typeProperties": {
+          "notebookId": "bc3890bc-d0e1-4e1c-8eed-503e2a95f8d9",
+          "workspaceId": "0448ed4f-990e-4171-83f1-ea2a293e12d9",
+          "parameters": {
+            "processing_date": {
+              "value": {
+                "value": "@formatDateTime(variables('run_upper_bound_utc'),'yyyy-MM-dd')",
+                "type": "Expression"
+              },
+              "type": "string"
+            }
+          }
+        }
+      }
+    ],
+    "lastModifiedByObjectId": "bc38fe06-2433-4a21-b5ba-add1b504450e",
+    "lastPublishTime": "2026-09-29T10:16:11Z",
+    "variables": {
+      "run_upper_bound_utc": {
+        "type": "String",
+        "defaultValue": ""
+      }
+    }
+  }
+}
