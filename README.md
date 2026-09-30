@@ -28,8 +28,8 @@ You need an existing Fabric workspace on active capacity, Python 3.11–3.13,
 Azure CLI, and Contributor access.
 
 ```powershell
-az login --allow-no-subscriptions
-.\deployment\deploy.ps1 -Workspace "My Fabric Workspace"
+az login --tenant "<tenant-id>" --allow-no-subscriptions
+.\deployment\deploy.ps1 -Workspace "<workspace-id>"
 ```
 
 Then run `pl_full_medallion_sap_finance` in the deployed workspace.

@@ -27,21 +27,27 @@ The local machine requires Python 3.11–3.13 and an authenticated Azure CLI.
 From the repository root:
 
 ```powershell
-.\deployment\deploy.ps1 -Workspace "My Fabric Workspace"
+az login --tenant "<tenant-id>" --allow-no-subscriptions
+.\deployment\deploy.ps1 -Workspace "<workspace-id>"
 ```
+
+The access token issued by `az login` determines the Fabric tenant. The
+deployer accepts either a workspace name or ID, but the ID is recommended
+because it is unambiguous. If Azure CLI is already signed into the correct
+tenant, another login is not required.
 
 Use `-DryRun` to validate the workspace and print the deployment plan without
 creating items:
 
 ```powershell
-.\deployment\deploy.ps1 -Workspace "My Fabric Workspace" -DryRun
+.\deployment\deploy.ps1 -Workspace "<workspace-id>" -DryRun
 ```
 
 Deployment fails on conflicting item names by default. Use `-Overwrite` to
 update compatible existing items:
 
 ```powershell
-.\deployment\deploy.ps1 -Workspace "My Fabric Workspace" -Overwrite
+.\deployment\deploy.ps1 -Workspace "<workspace-id>" -Overwrite
 ```
 
 ## Deployment order
@@ -87,7 +93,7 @@ Views, and validation evidence.
 For an interactive deployment:
 
 ```powershell
-az login --allow-no-subscriptions
+az login --tenant "<tenant-id>" --allow-no-subscriptions
 ```
 
 For automation, sign in Azure CLI with a service principal before invoking the
