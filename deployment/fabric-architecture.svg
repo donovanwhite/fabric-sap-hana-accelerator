@@ -1,0 +1,185 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">SAP Finance Microsoft Fabric solution accelerator</title>
+  <desc id="desc">Architecture from SAP Finance source through Fabric ingestion, medallion Lakehouses, Direct Lake semantic model, report, and Data Agent.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d1117"/>
+      <stop offset="0.55" stop-color="#0b0f14"/>
+      <stop offset="1" stop-color="#080c10"/>
+    </linearGradient>
+    <linearGradient id="fabric" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#91efe0"/>
+      <stop offset="0.52" stop-color="#82dfc1"/>
+      <stop offset="1" stop-color="#95df9c"/>
+    </linearGradient>
+    <linearGradient id="ribbonMid" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#74cdb9"/>
+      <stop offset="1" stop-color="#3e8e78"/>
+    </linearGradient>
+    <linearGradient id="ribbonDark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#468f80"/>
+      <stop offset="1" stop-color="#1f554d"/>
+    </linearGradient>
+    <linearGradient id="bronze" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f59e0b"/>
+      <stop offset="1" stop-color="#92400e"/>
+    </linearGradient>
+    <linearGradient id="silver" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e2e8f0"/>
+      <stop offset="1" stop-color="#64748b"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fde047"/>
+      <stop offset="1" stop-color="#d97706"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000" flood-opacity=".32"/>
+    </filter>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="16" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L9,4.5 L0,9 Z" fill="#82dfc1"/>
+    </marker>
+    <style>
+      .title { font: 700 44px "Segoe UI", Arial, sans-serif; fill: #fff; }
+      .subtitle { font: 400 19px "Segoe UI", Arial, sans-serif; fill: #b9c7e6; }
+      .section { font: 700 17px "Segoe UI", Arial, sans-serif; fill: #90e5ca; letter-spacing: 2px; }
+      .card-title { font: 700 22px "Segoe UI", Arial, sans-serif; fill: #fff; }
+      .card-text { font: 400 16px "Segoe UI", Arial, sans-serif; fill: #d8e1f4; }
+      .small { font: 500 14px "Segoe UI", Arial, sans-serif; fill: #b9c7e6; }
+      .pill { font: 600 13px "Segoe UI", Arial, sans-serif; fill: #fff; }
+      .dark-title { font: 700 22px "Segoe UI", Arial, sans-serif; fill: #172033; }
+      .dark-text { font: 500 16px "Segoe UI", Arial, sans-serif; fill: #27364c; }
+      .dark-small { font: 600 14px "Segoe UI", Arial, sans-serif; fill: #334155; }
+      .dark-pill { font: 700 13px "Segoe UI", Arial, sans-serif; fill: #fff; }
+      .line { fill: none; stroke: #82dfc1; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrow); }
+      .thin-line { fill: none; stroke: #64bda6; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#background)"/>
+  <text x="80" y="74" class="title">SAP Finance on Microsoft Fabric</text>
+  <text x="80" y="108" class="subtitle">Full-snapshot correctness · governed medallion processing · Direct Lake intelligence</text>
+  <g transform="translate(1265 34) scale(.30)" filter="url(#shadow)">
+    <path d="M18 178L60 62Q69 35 98 30L277 0Q294 -3 289 18L270 94Q267 107 253 110L76 141Q38 148 18 178Z" fill="url(#fabric)"/>
+    <path d="M18 178Q27 148 76 141L223 115L202 194Q198 208 183 211L46 235Q18 240 4 261Z" fill="url(#ribbonMid)"/>
+    <path d="M4 261Q-5 239 8 213L46 235L132 220L111 300Q107 317 91 320L42 328Q15 333 3 314Q-8 295 4 261Z" fill="url(#ribbonDark)"/>
+  </g>
+  <text x="1390" y="78" class="card-title">Microsoft Fabric</text>
+  <text x="1390" y="101" class="small">Solution accelerator</text>
+
+  <text x="90" y="175" class="section">SOURCE</text>
+  <text x="385" y="175" class="section">INGESTION</text>
+  <text x="690" y="175" class="section">MEDALLION LAKEHOUSES</text>
+  <text x="1260" y="175" class="section">CONSUMPTION</text>
+
+  <g filter="url(#shadow)">
+    <rect x="70" y="210" width="250" height="220" rx="28" fill="#111216" stroke="#2b78c5" stroke-width="2"/>
+    <circle cx="125" cy="270" r="31" fill="#0b74de"/>
+    <path d="M108 258h34v24h-34zm5-8h24v8h-24z" fill="#fff" opacity=".95"/>
+    <text x="170" y="265" class="card-title">SAP Finance</text>
+    <text x="100" y="330" class="card-text">Finance transactions</text>
+    <text x="100" y="360" class="card-text">Plans and master data</text>
+    <rect x="98" y="392" width="194" height="26" rx="13" fill="#153b64"/>
+    <text x="195" y="410" text-anchor="middle" class="pill">13 SOURCE TABLES</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="365" y="210" width="260" height="220" rx="28" fill="#11161a" stroke="#6bcbb2" stroke-width="2"/>
+    <circle cx="422" cy="270" r="31" fill="url(#fabric)"/>
+    <path d="M407 270h30m-15-15v30" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+    <text x="466" y="265" class="card-title">Full Snapshot</text>
+    <text x="466" y="292" class="small">Fabric orchestration</text>
+    <text x="397" y="340" class="card-text">JDBC to Fabric SQL</text>
+    <text x="397" y="368" class="card-text">One run date</text>
+    <rect x="397" y="392" width="196" height="26" rx="13" fill="#1f4f46"/>
+    <text x="495" y="410" text-anchor="middle" class="pill">NO CDC ASSUMPTION</text>
+  </g>
+
+  <path d="M320 320 H365" class="line"/>
+
+  <g filter="url(#shadow)">
+    <rect x="675" y="210" width="250" height="220" rx="28" fill="url(#bronze)" stroke="#fbbf24" stroke-width="2"/>
+    <text x="710" y="260" class="card-title">Bronze</text>
+    <text x="710" y="288" class="small" style="fill:#fff3d1">lh_brz_slv_finance / Files</text>
+    <text x="710" y="335" class="card-text">Dated source snapshots</text>
+    <text x="710" y="363" class="card-text">One-period replay window</text>
+    <rect x="710" y="392" width="180" height="26" rx="13" fill="#78350f" opacity=".76"/>
+    <text x="800" y="410" text-anchor="middle" class="pill">SOURCE-SHAPED CSV</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="960" y="210" width="250" height="220" rx="28" fill="url(#silver)" stroke="#e2e8f0" stroke-width="2"/>
+    <text x="995" y="260" class="dark-title">Silver</text>
+    <text x="995" y="288" class="dark-small">slv · quarantine · audit</text>
+    <text x="995" y="335" class="dark-text">Business-key MERGE</text>
+    <text x="995" y="363" class="dark-text">DQ gates and lineage</text>
+    <rect x="995" y="392" width="180" height="26" rx="13" fill="#475569" opacity=".8"/>
+    <text x="1085" y="410" text-anchor="middle" class="dark-pill">CURRENT STATE</text>
+  </g>
+
+  <path d="M625 320 H675" class="line"/>
+  <path d="M925 320 H960" class="line"/>
+
+  <g filter="url(#shadow)">
+    <rect x="815" y="500" width="395" height="250" rx="30" fill="url(#gold)" stroke="#fde68a" stroke-width="2"/>
+    <text x="855" y="555" class="dark-title">Gold Finance Model</text>
+    <text x="855" y="585" class="dark-small">lh_gld_finance</text>
+    <text x="855" y="630" class="dark-text">9 conformed SCD2 dimensions</text>
+    <text x="855" y="660" class="dark-text">2 atomic Finance facts</text>
+    <text x="855" y="690" class="dark-text">4 Materialized Lake Views</text>
+    <rect x="855" y="712" width="250" height="26" rx="13" fill="#92400e" opacity=".68"/>
+    <text x="980" y="730" text-anchor="middle" class="dark-pill">KIMBALL FACT CONSTELLATION</text>
+  </g>
+
+  <path d="M1085 430 V500" class="line"/>
+
+  <g filter="url(#shadow)">
+    <rect x="1260" y="210" width="270" height="150" rx="26" fill="#11161a" stroke="#80ddc2" stroke-width="2"/>
+    <circle cx="1310" cy="260" r="25" fill="#5dbba3"/>
+    <path d="M1298 260l8 8 17-18" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="1350" y="255" class="card-title">Semantic Model</text>
+    <text x="1350" y="282" class="small">Direct Lake on SQL</text>
+    <text x="1295" y="326" class="card-text">Measures · relationships · en-ZA</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="1260" y="395" width="270" height="150" rx="26" fill="#11161a" stroke="#6bcbb2" stroke-width="2"/>
+    <circle cx="1310" cy="445" r="25" fill="#3f8f7b"/>
+    <path d="M1298 458v-18m10 18v-30m10 30v-12" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+    <text x="1350" y="440" class="card-title">Executive Report</text>
+    <text x="1350" y="467" class="small">Power BI insights</text>
+    <text x="1295" y="511" class="card-text">Actual · plan · vendor · GL</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="1260" y="580" width="270" height="170" rx="26" fill="#11161a" stroke="#93e1b0" stroke-width="2"/>
+    <circle cx="1310" cy="632" r="25" fill="#6ab98b"/>
+    <path d="M1298 624h24v17h-11l-7 7v-7h-6z" fill="#fff"/>
+    <text x="1350" y="627" class="card-title">Finance Agent</text>
+    <text x="1350" y="654" class="small">Grounded NL2SQL</text>
+    <text x="1295" y="696" class="card-text">Instructions · topics · examples</text>
+    <text x="1295" y="723" class="card-text">Synthetic-data safeguards</text>
+  </g>
+
+  <path d="M1210 625 H1235 V285 H1260" class="line"/>
+  <path d="M1210 665 H1260" class="line"/>
+  <path d="M1395 360 V395" class="thin-line"/>
+
+  <g filter="url(#shadow)">
+    <rect x="70" y="520" width="650" height="230" rx="30" fill="#0f1014" stroke="#2d3354" stroke-width="2"/>
+    <text x="105" y="570" class="section">ONE-COMMAND DEPLOYMENT</text>
+    <text x="105" y="614" class="card-title">Fabric REST Installer</text>
+    <text x="105" y="648" class="card-text">Creates and binds every Fabric item</text>
+    <text x="105" y="680" class="card-text">Seeds SAP_FIN_DB and validates deployment</text>
+    <rect x="105" y="708" width="455" height="28" rx="14" fill="#173e37"/>
+    <text x="332" y="727" text-anchor="middle" class="pill">EXISTING WORKSPACE · CONTRIBUTOR ACCESS</text>
+  </g>
+
+  <path d="M720 635 H815" class="thin-line"/>
+
+  <text x="80" y="842" class="small">Correctness first: full SAP snapshots handle missing technical change timestamps.</text>
+  <text x="1520" y="842" text-anchor="end" class="small">Microsoft Fabric · OneLake · Power BI</text>
+</svg>
