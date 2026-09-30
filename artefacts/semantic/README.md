@@ -19,6 +19,10 @@ Use a Direct Lake fact constellation over the `lh_gld_finance` lakehouse.
 Shared conformed dimensions filter the atomic facts and derived Fabric
 Materialized Lake Views (MLVs).
 
+The deployment installer binds the model through Direct Lake on SQL by
+replacing `__GOLD_SQL_SERVER__` and `__GOLD_SQL_DATABASE__` in
+`definition/expressions.tmdl` with the deployed Gold Lakehouse SQL endpoint.
+
 Apply these rules to every relationship:
 
 * Cardinality: one-to-many from dimension to fact

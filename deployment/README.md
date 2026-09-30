@@ -73,6 +73,10 @@ The pipeline uses `00_Source_Full_Snapshot` to read `SAP_FIN_DB` with the
 pipeline execution identity. It does not require a separately created OAuth
 connection.
 
+The semantic model uses Direct Lake on SQL. The installer resolves the Gold
+Lakehouse SQL endpoint and database name and substitutes them into the TMDL
+expression before deployment.
+
 The installer is idempotent with `-Overwrite`. It never runs the data pipeline.
 After a successful deployment, the team runs
 `pl_full_medallion_sap_finance` to create Silver, Gold, the Materialized Lake

@@ -1,5 +1,5 @@
 expression 'DirectLake - SAP Finance' =
 	let
-		Source = AzureStorage.DataLake("https://onelake.dfs.fabric.microsoft.com/0448ed4f-990e-4171-83f1-ea2a293e12d9/afdc0c5b-8ace-4cee-940f-b17076bcc0a7", [HierarchicalNavigation=true])
+		Source = Sql.Database("__GOLD_SQL_SERVER__", "__GOLD_SQL_DATABASE__")
 	in
 		Source

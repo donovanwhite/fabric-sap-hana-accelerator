@@ -132,6 +132,11 @@ class AcceleratorDeployer:
             f"/workspaces/{workspace_id}/sqlDatabases/{sql_database.id}",
             expected=(200,),
         ).json()["properties"]
+        gold_properties = self.client.request(
+            "GET",
+            f"/workspaces/{workspace_id}/lakehouses/{gold.id}",
+            expected=(200,),
+        ).json()["properties"]
 
         notebook_ids: dict[str, str] = {}
         gold_default_notebooks = {
@@ -172,6 +177,10 @@ class AcceleratorDeployer:
                 replacements={
                     OLD_WORKSPACE_ID: workspace_id,
                     OLD_GOLD_LAKEHOUSE_ID: gold.id,
+                    "__GOLD_SQL_SERVER__": gold_properties[
+                        "sqlEndpointProperties"
+                    ]["connectionString"],
+                    "__GOLD_SQL_DATABASE__": gold.display_name,
                 },
             ),
         )

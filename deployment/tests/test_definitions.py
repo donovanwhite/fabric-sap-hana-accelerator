@@ -106,11 +106,19 @@ class DefinitionTests(unittest.TestCase):
         semantic = directory_definition(
             ARTEFACTS / "semantic" / "SAP Finance.SemanticModel",
             format_name="TMDL",
-            replacements={},
+            replacements={
+                "__GOLD_SQL_SERVER__": "test.datawarehouse.fabric.microsoft.com",
+                "__GOLD_SQL_DATABASE__": "lh_gld_finance",
+            },
         )
         semantic_paths = {item["path"] for item in semantic["parts"]}
         self.assertIn("definition/model.tmdl", semantic_paths)
         self.assertNotIn("model-manifest.json", semantic_paths)
+        expression = decode_part(
+            semantic, "definition/expressions.tmdl"
+        ).decode("utf-8")
+        self.assertIn("Sql.Database", expression)
+        self.assertNotIn("__GOLD_SQL_SERVER__", expression)
 
         report = directory_definition(
             ARTEFACTS / "semantic" / "SAP Finance Executive Insights.Report",
