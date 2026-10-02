@@ -17,13 +17,15 @@ from .definitions import (
     notebook_definition,
     pipeline_definition,
     sql_database_definition,
+    validate_deployable_definition,
 )
 from .fabric import FabricApiError, FabricClient, FabricItem
 
 LOGGER = logging.getLogger(__name__)
 
+SQL_CONNECTION_NAME = "conn_sap_finance_sql"
+
 NOTEBOOK_NAMES = [
-    "00_Source_Full_Snapshot",
     "00_Setup_and_Namespace_Validation",
     "01_Bronze_CSV_Inventory",
     "02_Bronze_CSV_to_Silver_Delta",
@@ -51,6 +53,7 @@ class DeploymentOptions:
     """Deployment input parameters."""
 
     workspace: str
+    sql_connection: str = SQL_CONNECTION_NAME
     overwrite: bool = False
     dry_run: bool = False
 
@@ -99,6 +102,15 @@ class AcceleratorDeployer:
             workspace_id,
             capacity_id,
         )
+        sql_connection = self.client.resolve_oauth2_connection(
+            self.options.sql_connection, "FabricSql"
+        )
+        self.client.validate_connection_online(sql_connection)
+        LOGGER.info(
+            "Validated OAuth2 connection: %s (%s)",
+            sql_connection["displayName"],
+            sql_connection["id"],
+        )
         self._check_conflicts(workspace_id)
         if self.options.dry_run:
             self._print_plan()
@@ -127,11 +139,6 @@ class AcceleratorDeployer:
                 "creationMode": "new",
             },
         )
-        sql_properties = self.client.request(
-            "GET",
-            f"/workspaces/{workspace_id}/sqlDatabases/{sql_database.id}",
-            expected=(200,),
-        ).json()["properties"]
         gold_properties = self.client.request(
             "GET",
             f"/workspaces/{workspace_id}/lakehouses/{gold.id}",
@@ -227,8 +234,9 @@ class AcceleratorDeployer:
                 self.artifacts_root / "pipeline" / "pipeline-content.json",
                 workspace_id=workspace_id,
                 notebook_ids=notebook_ids,
-                sql_server=sql_properties["serverFqdn"].replace(",", ":"),
-                sql_database=sql_properties["databaseName"],
+                sql_database_id=sql_database.id,
+                bronze_lakehouse_id=bronze.id,
+                sql_connection_id=sql_connection["id"],
             ),
         )
         self._validate_inventory(workspace_id)
@@ -270,15 +278,39 @@ class AcceleratorDeployer:
         return expected
 
     def _check_conflicts(self, workspace_id: str) -> None:
-        existing = {
-            (item.display_name, item.type.casefold()): item
-            for item in self.client.list_items(workspace_id)
-        }
-        conflicts = [
-            f"{name} ({item_type})"
-            for name, item_type in self._expected_items()
-            if (name, item_type.casefold()) in existing
-        ]
+        existing = self.client.list_items(workspace_id)
+        conflicts: list[str] = []
+        for name, expected_type in self._expected_items():
+            name_matches = [
+                item for item in existing if item.display_name == name
+            ]
+            incompatible = [
+                item
+                for item in name_matches
+                if item.type.casefold() != expected_type.casefold()
+                and item.type.casefold() != "sqlendpoint"
+            ]
+            if incompatible:
+                actual_types = ", ".join(
+                    sorted({item.type for item in incompatible})
+                )
+                raise FabricApiError(
+                    f"Workspace item name {name!r} is already used by "
+                    f"{actual_types}; expected {expected_type}. Rename or "
+                    "remove the conflicting item before deployment."
+                )
+            compatible = [
+                item
+                for item in name_matches
+                if item.type.casefold() == expected_type.casefold()
+            ]
+            if len(compatible) > 1:
+                raise FabricApiError(
+                    f"Multiple {expected_type} items are named {name!r}. "
+                    "Resolve the duplicates before deployment."
+                )
+            if compatible and not self.options.overwrite:
+                conflicts.append(f"{name} ({expected_type})")
         if conflicts and not self.options.overwrite:
             raise FabricApiError(
                 "Deployment item names already exist. Re-run with --overwrite "
@@ -340,6 +372,7 @@ class AcceleratorDeployer:
         definition: dict[str, Any],
         creation_payload: dict[str, Any] | None = None,
     ) -> FabricItem:
+        validate_deployable_definition(definition)
         existing = self.client.find_item(workspace_id, display_name, item_type)
         if existing:
             if not self.options.overwrite:

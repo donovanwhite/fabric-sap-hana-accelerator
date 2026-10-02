@@ -6,6 +6,7 @@ import json
 import time
 import urllib.error
 import urllib.request
+import uuid
 from dataclasses import dataclass
 from typing import Any, Callable
 
@@ -57,7 +58,7 @@ class FabricClient:
         return {
             "Authorization": f"Bearer {self.token_provider()}",
             "Content-Type": "application/json",
-            "x-ms-fabric-skill": "fabric-sap-hana-deployer",
+            "x-ms-fabric-skill": "deployment-pipelines-authoring-cli",
         }
 
     def request(
@@ -133,7 +134,13 @@ class FabricClient:
         location = response.headers.get("Location")
         if not location:
             raise FabricApiError(f"{method} {path} returned 202 without Location")
-        delay = int(response.headers.get("Retry-After", "5").split(",")[0])
+        return self._wait_for_operation(location, f"{method} {path}")
+
+    def _wait_for_operation(
+        self, location: str, operation_name: str
+    ) -> dict[str, Any]:
+        """Wait for one Fabric long-running operation."""
+        delay = 5
         deadline = time.monotonic() + self.lro_timeout_seconds
         while time.monotonic() < deadline:
             time.sleep(max(delay, 1))
@@ -144,10 +151,12 @@ class FabricClient:
                 return payload
             if status == "Failed":
                 raise FabricApiError(
-                    f"{method} {path} failed: {payload.get('error', payload)}"
+                    f"{operation_name} failed: {payload.get('error', payload)}"
                 )
             delay = int(poll.headers.get("Retry-After", str(delay)).split(",")[0])
-        raise FabricApiError(f"{method} {path} did not complete before timeout")
+        raise FabricApiError(
+            f"{operation_name} did not complete before timeout"
+        )
 
     def paged(self, path: str) -> list[dict[str, Any]]:
         """Return every value from a paginated Fabric collection."""
@@ -178,6 +187,84 @@ class FabricClient:
         return self.request(
             "GET", f"/workspaces/{matches[0]['id']}", expected=(200,)
         ).json()
+
+    def resolve_oauth2_connection(
+        self, name_or_id: str, connection_type: str
+    ) -> dict[str, Any]:
+        """Resolve one OAuth2 cloud connection by name and type."""
+        try:
+            connection_id = str(uuid.UUID(name_or_id))
+        except ValueError:
+            matches = [
+                connection
+                for connection in self.paged("/connections")
+                if connection.get("displayName") == name_or_id
+                and connection.get("connectionDetails", {}).get("type")
+                == connection_type
+            ]
+            if len(matches) != 1:
+                raise FabricApiError(
+                    f"Expected one {connection_type} OAuth2 connection named "
+                    f"{name_or_id!r}; found {len(matches)}. Create and authorize "
+                    "the connection in Fabric, or pass its ID with "
+                    "--sql-connection."
+                )
+            connection_id = matches[0]["id"]
+        connection = self.request(
+            "GET", f"/connections/{connection_id}", expected=(200,)
+        ).json()
+        actual_type = connection.get("connectionDetails", {}).get("type")
+        if actual_type != connection_type:
+            raise FabricApiError(
+                f"Connection {name_or_id!r} must have type {connection_type}; "
+                f"found {actual_type or 'no connection type'}"
+            )
+        if connection.get("connectivityType") != "ShareableCloud":
+            raise FabricApiError(
+                f"Connection {name_or_id!r} must be a ShareableCloud "
+                f"connection; found {connection.get('connectivityType')}"
+            )
+        credential_type = connection.get("credentialDetails", {}).get(
+            "credentialType"
+        )
+        if credential_type != "OAuth2":
+            raise FabricApiError(
+                f"Connection {name_or_id!r} must use OAuth2 credentials; "
+                f"found {credential_type or 'no credential type'}"
+            )
+        return connection
+
+    def validate_connection_online(self, connection: dict[str, Any]) -> None:
+        """Fail before deployment when a connection is offline or expired."""
+        connection_id = connection["id"]
+        path = f"/connections/{connection_id}/testConnection"
+        response = self.request("POST", path, expected=(200, 202))
+        if response.status_code == 200:
+            result = response.json()
+        else:
+            location = response.headers.get("Location")
+            if not location:
+                raise FabricApiError(
+                    f"POST {path} returned 202 without Location"
+                )
+            self._wait_for_operation(location, f"Test connection {connection_id}")
+            result = self.request(
+                "GET", f"{location}/result", expected=(200,)
+            ).json()
+        if result.get("status") != "Online":
+            errors = result.get("errors") or []
+            details = "; ".join(
+                error.get("message", str(error)) for error in errors
+            )
+            if not details:
+                details = (
+                    "Reauthorize or repair it in Manage connections and "
+                    "gateways before deployment."
+                )
+            raise FabricApiError(
+                f"Connection {connection.get('displayName', connection_id)!r} "
+                f"is {result.get('status', 'not online')}. {details}"
+            )
 
     def list_items(self, workspace_id: str) -> list[FabricItem]:
         """List generic workspace items."""

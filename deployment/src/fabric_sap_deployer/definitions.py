@@ -17,16 +17,48 @@ OLD_GOLD_LAKEHOUSE_ID = "afdc0c5b-8ace-4cee-940f-b17076bcc0a7"
 OLD_SQL_DATABASE_ID = "de838c75-ed06-488c-ae5c-7bb3484e8e53"
 OLD_SEMANTIC_MODEL_ID = "7f649a72-ce03-4788-8bc1-a92ca208867b"
 
-OLD_NOTEBOOK_IDS = {
-    "378594a7-2b2f-4d78-97ca-7b4997fbc202": "00_Setup_and_Namespace_Validation",
-    "608c836a-24ac-43d7-9275-ff9ba2bca24e": "01_Bronze_CSV_Inventory",
-    "8cea0e2b-5a4d-4996-aa55-a8b9d63faa36": "02_Bronze_CSV_to_Silver_Delta",
-    "272aa892-f5e9-498f-af1d-054dda8b6d3c": "03_Gold_SCD2_Dimensions",
-    "8483e349-36e3-4102-b69f-e24a807df8fb": "04_Gold_Atomic_Finance_Fact",
-    "30005a8a-313e-48c0-9576-23c6b0bdd59c": "05_Gold_Budget_Fact",
-    "097d87ac-6153-49d9-94a6-6a53c042173e": "06_Gold_Materialized_Lake_Views",
-    "5f94118d-3996-43a2-be7b-7b9524a2c6f0": "07_End_to_End_Validation",
-    "bc3890bc-d0e1-4e1c-8eed-503e2a95f8d9": "08_Bronze_Snapshot_Cleanup",
+LEGACY_ENVIRONMENT_IDS = frozenset(
+    {
+        OLD_WORKSPACE_ID,
+        OLD_BRONZE_LAKEHOUSE_ID,
+        OLD_GOLD_LAKEHOUSE_ID,
+        OLD_SQL_DATABASE_ID,
+        OLD_SEMANTIC_MODEL_ID,
+        "378594a7-2b2f-4d78-97ca-7b4997fbc202",
+        "608c836a-24ac-43d7-9275-ff9ba2bca24e",
+        "8cea0e2b-5a4d-4996-aa55-a8b9d63faa36",
+        "272aa892-f5e9-498f-af1d-054dda8b6d3c",
+        "8483e349-36e3-4102-b69f-e24a807df8fb",
+        "30005a8a-313e-48c0-9576-23c6b0bdd59c",
+        "097d87ac-6153-49d9-94a6-6a53c042173e",
+        "5f94118d-3996-43a2-be7b-7b9524a2c6f0",
+        "bc3890bc-d0e1-4e1c-8eed-503e2a95f8d9",
+    }
+)
+
+UNRESOLVED_DEPLOYMENT_TOKENS = frozenset(
+    {
+        "__WORKSPACE_ID__",
+        "__SQL_DATABASE_ID__",
+        "__SQL_CONNECTION_ID__",
+        "__BRONZE_LAKEHOUSE_ID__",
+        "__NOTEBOOK_ID__",
+        "__SEMANTIC_MODEL_ID__",
+        "__GOLD_SQL_SERVER__",
+        "__GOLD_SQL_DATABASE__",
+    }
+)
+
+PIPELINE_NOTEBOOKS = {
+    "nb_schema_val": "00_Setup_and_Namespace_Validation",
+    "nb_tbl_inventory": "01_Bronze_CSV_Inventory",
+    "nb_brz_slv_sap": "02_Bronze_CSV_to_Silver_Delta",
+    "nb_gld_dim_sap": "03_Gold_SCD2_Dimensions",
+    "nb_gld_fct_fin_sap": "04_Gold_Atomic_Finance_Fact",
+    "nb_gld_bgt_sap": "05_Gold_Budget_Fact",
+    "nb_gld_fct_mlv": "06_Gold_Materialized_Lake_Views",
+    "nb_full_validation": "07_End_to_End_Validation",
+    "nb_bronze_cleanup": "08_Bronze_Snapshot_Cleanup",
 }
 
 NUMC_WIDTHS = {
@@ -59,6 +91,34 @@ def part(path: str, payload: bytes | str) -> dict[str, str]:
 def json_text(value: Any) -> str:
     """Serialize deterministic JSON for a definition part."""
     return json.dumps(value, indent=2, ensure_ascii=False) + "\n"
+
+
+def validate_deployable_definition(definition: dict[str, Any]) -> None:
+    """Reject generated definitions that retain source-environment metadata."""
+    for definition_part in definition.get("parts", []):
+        try:
+            content = base64.b64decode(
+                definition_part["payload"], validate=True
+            ).decode("utf-8")
+        except (KeyError, UnicodeDecodeError, ValueError):
+            continue
+        stale_ids = sorted(
+            value for value in LEGACY_ENVIRONMENT_IDS if value in content
+        )
+        unresolved = sorted(
+            token for token in UNRESOLVED_DEPLOYMENT_TOKENS if token in content
+        )
+        if stale_ids or unresolved:
+            details = []
+            if stale_ids:
+                details.append("legacy IDs: " + ", ".join(stale_ids))
+            if unresolved:
+                details.append("unresolved tokens: " + ", ".join(unresolved))
+            raise ValueError(
+                f"Definition part {definition_part.get('path', '<unknown>')!r} "
+                "contains environment-specific metadata: "
+                + "; ".join(details)
+            )
 
 
 def notebook_definition(
@@ -113,22 +173,42 @@ def pipeline_definition(
     *,
     workspace_id: str,
     notebook_ids: dict[str, str],
-    sql_server: str,
-    sql_database: str,
+    sql_database_id: str,
+    bronze_lakehouse_id: str,
+    sql_connection_id: str,
 ) -> dict[str, Any]:
     """Rebind the pipeline to target item and connection identifiers."""
     payload = json.loads(path.read_text(encoding="utf-8"))
     activities = payload["properties"]["activities"]
     for activity in activities:
         properties = activity.get("typeProperties", {})
-        if activity["name"] == "nb_source_full_snapshot":
-            properties["notebookId"] = notebook_ids["00_Source_Full_Snapshot"]
-            properties["workspaceId"] = workspace_id
-            properties["parameters"]["sql_server"]["value"] = sql_server
-            properties["parameters"]["sql_database"]["value"] = sql_database
-        old_notebook_id = properties.get("notebookId")
-        if old_notebook_id in OLD_NOTEBOOK_IDS:
-            notebook_name = OLD_NOTEBOOK_IDS[old_notebook_id]
+        if activity["name"] == "fe_copy_sap_full_snapshot":
+            copy_activity = properties["activities"][0]
+            source_settings = copy_activity["typeProperties"]["source"][
+                "datasetSettings"
+            ]["connectionSettings"]["properties"]["typeProperties"]
+            source_settings["workspaceId"] = workspace_id
+            source_settings["artifactId"] = sql_database_id
+            copy_activity["typeProperties"]["source"]["datasetSettings"][
+                "connectionSettings"
+            ]["properties"]["externalReferences"][
+                "connection"
+            ] = sql_connection_id
+            sink_settings = copy_activity["typeProperties"]["sink"][
+                "datasetSettings"
+            ]["linkedService"]["properties"]["typeProperties"]
+            sink_settings["workspaceId"] = workspace_id
+            sink_settings["artifactId"] = bronze_lakehouse_id
+            copy_activity["typeProperties"]["sink"]["datasetSettings"].pop(
+                "externalReferences", None
+            )
+        if activity["type"] == "TridentNotebook":
+            notebook_name = PIPELINE_NOTEBOOKS.get(activity["name"])
+            if notebook_name is None:
+                raise ValueError(
+                    f"No notebook binding is configured for pipeline activity "
+                    f"{activity['name']!r}"
+                )
             properties["notebookId"] = notebook_ids[notebook_name]
             properties["workspaceId"] = workspace_id
     return {"parts": [part("pipeline-content.json", json_text(payload))]}

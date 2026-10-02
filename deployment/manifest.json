@@ -8,7 +8,6 @@
     ],
     "sqlDatabase": "SAP_FIN_DB",
     "notebooks": [
-      "00_Source_Full_Snapshot",
       "00_Setup_and_Namespace_Validation",
       "01_Bronze_CSV_Inventory",
       "02_Bronze_CSV_to_Silver_Delta",

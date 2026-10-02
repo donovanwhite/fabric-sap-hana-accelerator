@@ -1,6 +1,7 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$Workspace,
+    [string]$SqlConnection = "conn_sap_finance_sql",
     [switch]$Overwrite,
     [switch]$DryRun
 )
@@ -10,7 +11,9 @@ $deploymentRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $arguments = @(
     (Join-Path $deploymentRoot "deploy.py"),
     "--workspace",
-    $Workspace
+    $Workspace,
+    "--sql-connection",
+    $SqlConnection
 )
 
 if ($Overwrite) {

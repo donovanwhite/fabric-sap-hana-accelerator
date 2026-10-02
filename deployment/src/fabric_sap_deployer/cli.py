@@ -32,6 +32,14 @@ def create_parser() -> argparse.ArgumentParser:
         help="Update compatible items when names already exist",
     )
     parser.add_argument(
+        "--sql-connection",
+        default="conn_sap_finance_sql",
+        help=(
+            "Authorized ShareableCloud FabricSql OAuth2 connection name or ID "
+            "(default: conn_sap_finance_sql)"
+        ),
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Validate prerequisites and print the deployment plan",
@@ -71,6 +79,7 @@ def main() -> int:
             repository_root(),
             DeploymentOptions(
                 workspace=args.workspace,
+                sql_connection=args.sql_connection,
                 overwrite=args.overwrite,
                 dry_run=args.dry_run,
             ),
