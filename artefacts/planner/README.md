@@ -107,11 +107,16 @@ deployment:
 ## Connection binding
 
 The installer binds `conn_sap_finance_planning_sql` to the Plan application
-database for viewer collaboration and to all three governed writeback
-destinations. `conn_sap_finance_sql` remains dedicated to `SAP_FIN_DB` source
-ingestion. The planning connection must already exist and have valid OAuth2
-credentials because Fabric does not expose interactive user consent through
-the deployment API.
+database for viewer collaboration. `conn_sap_finance_sql` remains dedicated
+to `SAP_FIN_DB` source ingestion. The planning connection must already exist
+and have valid OAuth2 credentials because Fabric does not expose interactive
+user consent through the deployment API.
+
+Editable input columns and writeback destinations are runtime state in the
+Plan application database. Fabric's public item-definition API does not
+initialize that state. Publishing hand-authored `dataInput.json` or
+`writeback.json` parts causes the Planning Core API to receive empty or
+unresolved requests and return an internal server error.
 
 After deployment:
 
@@ -120,13 +125,20 @@ After deployment:
    `conn_sap_finance_planning_sql`.
 3. Verify that all five generated Planning visuals can query the semantic
    model.
-4. Confirm finance users have Read and Build access to the semantic model and
+4. In edit mode, create the inputs listed in
+   [`finance-plan-spec.json`](./finance-plan-spec.json) using **Insert
+   Column**. This initializes Fabric's internal Planning sidecar.
+5. Configure Budget, Forecast, and Assumption writeback through the
+   **Writeback** ribbon, selecting `conn_sap_finance_planning_sql` and
+   `SAP_FIN_PLAN_DB`.
+6. Confirm finance users have Read and Build access to the semantic model and
    connection access for their assigned workflow.
-5. Test one controlled writeback in each editable sheet and inspect the
+7. Test one controlled writeback in each editable sheet and inspect the
    generated destination table.
 
-The generated Plan definition includes all visual and writeback metadata.
-Do not commit OAuth credentials or tenant connection IDs.
+The generated Plan definition includes portable sheet and visual metadata.
+Do not commit OAuth credentials, tenant connection IDs, or exported Planning
+sidecar state.
 
 ## Lifecycle and ownership
 

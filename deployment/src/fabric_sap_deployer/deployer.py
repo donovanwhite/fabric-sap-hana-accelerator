@@ -262,7 +262,6 @@ class AcceleratorDeployer:
                 workspace_name=self.workspace["displayName"],
                 semantic_model_id=semantic_model.id,
                 semantic_model_connection_id=semantic_model_connection["id"],
-                plan_database_id=planning_database.id,
                 plan_sql_connection_id=planning_sql_connection["id"],
             ),
         )

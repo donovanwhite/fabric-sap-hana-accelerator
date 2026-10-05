@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import base64
 import csv
-import hashlib
 import json
 import re
 import uuid
@@ -47,9 +46,7 @@ UNRESOLVED_DEPLOYMENT_TOKENS = frozenset(
         "__SEMANTIC_MODEL_ID__",
         "__SEMANTIC_MODEL_CONNECTION_ID__",
         "__SEMANTIC_MODEL_URL__",
-        "__PLAN_DATABASE_ID__",
         "__PLAN_SQL_CONNECTION_ID__",
-        "__WRITEBACK_SETTINGS_HASH__",
         "__WORKSPACE_NAME__",
         "__GOLD_SQL_SERVER__",
         "__GOLD_SQL_DATABASE__",
@@ -287,68 +284,6 @@ def _plan_comment_settings(sheet: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _plan_data_input(sheet: dict[str, Any]) -> dict[str, Any]:
-    columns: list[dict[str, Any]] = []
-    for item in sheet["inputs"]:
-        if item["kind"] == "Number":
-            column_type = {
-                "Number": {
-                    "min_value": None,
-                    "max_value": None,
-                    "distribute_parent_value_to_children": True,
-                    "default_value": None,
-                }
-            }
-            data_input_type = 0
-        else:
-            column_type = {
-                "ShortText": {
-                    "default_value": None,
-                    "allow_entry_on_totals_or_subtotals": False,
-                    "prevent_null": False,
-                    "field_validation": "AnyValue",
-                    "minimum_length": None,
-                    "maximum_length": 1000,
-                }
-            }
-            data_input_type = 1
-        columns.append(
-            {
-                "measureGuid": item["guid"],
-                "visualId": sheet["visualId"],
-                "columnMeta": {
-                    "id": item["guid"],
-                    "label": item["name"],
-                    "measure_type": {
-                        "DataInput": {
-                            "id": item["guid"],
-                            "column_type": column_type,
-                            "title": item["name"],
-                            "disable_write_access": False,
-                        }
-                    },
-                    "data_type": item["kind"],
-                    "description": item["description"],
-                    "name": item["name"],
-                },
-                "name": item["name"],
-                "description": item["description"],
-                "dataInputType": data_input_type,
-                "boundToFilterContext": 1,
-                "sidecarHydrationLeaseAt": None,
-                "sidecarHydrationStatus": 10,
-                "status": 10,
-            }
-        )
-    return {
-        "$schema": (
-            "https://developer.microsoft.com/json-schemas/fabric/item/plan/"
-            "definition/Planning/DataInput/1.0.0/schema.json"
-        ),
-        "columns": columns,
-    }
-
-
 def _plan_visual_properties(sheet: dict[str, Any]) -> dict[str, Any]:
     assignments: list[dict[str, Any]] = []
     bucket_order = {"rows": 0, "columns": 0, "ameasure": 0}
@@ -491,103 +426,6 @@ def _plan_visual_properties(sheet: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _writeback_column_name(dimension: dict[str, Any]) -> str:
-    name = re.sub(r"[^a-z0-9]+", "_", dimension["column"].lower()).strip("_")
-    return "fiscal_period" if name == "fiscal_period_name" else name
-
-
-def _plan_writeback(
-    sheet: dict[str, Any],
-    *,
-    workspace_id: str,
-    plan_database_id: str,
-    plan_sql_connection_id: str,
-) -> dict[str, Any]:
-    wb_columns: list[dict[str, Any]] = []
-    for dimension in sheet["dimensions"]:
-        is_time = dimension["table"] == "Fiscal Period"
-        column = {
-            "id": f"{dimension['table']}[{dimension['column']}]",
-            "name": _writeback_column_name(dimension),
-            "dataType": (
-                "NUMERIC"
-                if dimension["dataType"] in {"Int64", "Double"}
-                else "TEXT"
-            ),
-            "isColumnDimension": dimension["bucket"] == "columns",
-            "isTimeDimension": is_time,
-            "source": "Native",
-        }
-        if is_time:
-            column["timeIntervalUnit"] = (
-                "YEAR" if dimension["column"] == "Fiscal Year" else "MONTH"
-            )
-        wb_columns.append(column)
-    mappings: dict[str, dict[str, str]] = {}
-    for item in sheet["inputs"]:
-        mappings[item["guid"]] = {
-            "visualName": item["name"],
-            "wbColumnName": item["column"],
-        }
-        wb_columns.append(
-            {
-                "measureGuid": item["guid"],
-                "name": item["column"],
-                "dataType": (
-                    "NUMERIC" if item["kind"] == "Number" else "TEXT"
-                ),
-                "isColumnDimension": False,
-                "isTimeDimension": False,
-                "source": "Visual Measure",
-            }
-        )
-    settings = {
-        "database": {
-            "workspaceId": workspace_id,
-            "itemId": plan_database_id,
-        },
-        "dbSchema": "plan",
-        "dbDisplayName": "SAP_FIN_PLAN_DB",
-    }
-    settings_hash = hashlib.sha256(
-        json.dumps(
-            settings,
-            sort_keys=True,
-            separators=(",", ":"),
-        ).encode("utf-8")
-    ).hexdigest()
-    return {
-        "$schema": (
-            "https://developer.microsoft.com/json-schemas/fabric/item/plan/"
-            "definition/Planning/Writeback/1.0.0/schema.json"
-        ),
-        "writebackType": 2,
-        "destinations": [
-            {
-                "tableName": sheet["writebackTable"],
-                "connectionId": plan_sql_connection_id,
-                "settings": settings,
-                "settingsHash": settings_hash,
-                "visualId": sheet["visualId"],
-            }
-        ],
-        "writebackFilter": {"type": "none"},
-        "excludedMeasureGuids": [],
-        "isAutoWritebackEnabled": 0,
-        "autoWbEnabledScenarioIds": [],
-        "debounce": {"duration": 3, "isDebounceEnabled": 1},
-        "isSnapshotWbEnabled": 0,
-        "wbTableColumnMapping": mappings,
-        "numberPrecision": {"decimal": 2},
-        "stringColumnLength": {"type": 1, "length": "1000"},
-        "writebackAsHTML": False,
-        "writebackConstraints": {},
-        "wbColumns": wb_columns,
-        "hasWritebackAccess": True,
-        "skippedDimensionIds": [],
-    }
-
-
 def plan_definition(
     root: Path,
     *,
@@ -595,7 +433,6 @@ def plan_definition(
     workspace_name: str,
     semantic_model_id: str,
     semantic_model_connection_id: str,
-    plan_database_id: str,
     plan_sql_connection_id: str,
 ) -> dict[str, Any]:
     """Create a rebound Fabric Plan definition."""
@@ -635,27 +472,6 @@ def plan_definition(
                 ),
             ]
         )
-        if sheet["inputs"]:
-            definition_parts.append(
-                part(
-                    f"{visual_root}/dataInput.json",
-                    json_text(_plan_data_input(sheet)),
-                )
-            )
-        if sheet.get("writebackTable"):
-            definition_parts.append(
-                part(
-                    f"{visual_root}/writeback.json",
-                    json_text(
-                        _plan_writeback(
-                            sheet,
-                            workspace_id=workspace_id,
-                            plan_database_id=plan_database_id,
-                            plan_sql_connection_id=plan_sql_connection_id,
-                        )
-                    ),
-                )
-            )
     return {"parts": definition_parts}
 
 

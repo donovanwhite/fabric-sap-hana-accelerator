@@ -139,10 +139,12 @@ expression before deployment.
 
 The Plan item uses the `SAP Finance` semantic model for governed actuals. Fabric
 creates its internal application database automatically. The installer binds `conn_sap_finance_planning_sql` to the application
-database for viewer collaboration and to the generated writeback
-destinations. `conn_sap_finance_sql` remains isolated to source ingestion.
-The separate `SAP_FIN_PLAN_DB` stores governed scenarios, assumptions, and
-writeback data. Validation steps are documented in
+database for viewer collaboration. `conn_sap_finance_sql` remains isolated
+to source ingestion. Editable input and writeback runtime state must be
+initialized once through the Plan UI because the public item-definition API
+does not create the internal Planning sidecar. The separate `SAP_FIN_PLAN_DB`
+stores governed scenarios, assumptions, and writeback data. Validation and
+initialization steps are documented in
 [`artefacts/planner/README.md`](../artefacts/planner/README.md).
 
 The installer is idempotent with `-Overwrite`. Generated definitions are

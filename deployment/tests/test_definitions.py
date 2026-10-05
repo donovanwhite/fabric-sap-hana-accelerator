@@ -174,7 +174,6 @@ class DefinitionTests(unittest.TestCase):
             semantic_model_connection_id=(
                 "33333333-3333-3333-3333-333333333333"
             ),
-            plan_database_id="44444444-4444-4444-4444-444444444444",
             plan_sql_connection_id=(
                 "55555555-5555-5555-5555-555555555555"
             ),
@@ -220,55 +219,18 @@ class DefinitionTests(unittest.TestCase):
                 for sheet in plan["sheets"]
             )
         )
-        writeback = json.loads(
-            decode_part(
-                definition,
-                (
-                    "sheets/8dcecfce-d29a-5de8-b1cd-29df3cf077ec/"
-                    "visuals/330d95e6-b32b-5f7c-ab1e-e00a68579c89/"
-                    "writeback.json"
-                ),
-            ).decode("utf-8")
-        )
-        destination = writeback["destinations"][0]
-        self.assertEqual(
-            destination["connectionId"],
-            "55555555-5555-5555-5555-555555555555",
-        )
-        self.assertEqual(
-            destination["settings"]["database"]["itemId"],
-            "44444444-4444-4444-4444-444444444444",
-        )
-        self.assertEqual(len(destination["settingsHash"]), 64)
         writeback_parts = [
             item
             for item in definition["parts"]
             if item["path"].endswith("/writeback.json")
         ]
-        self.assertEqual(len(writeback_parts), 3)
+        self.assertEqual(len(writeback_parts), 0)
         data_input_parts = [
             item
             for item in definition["parts"]
             if item["path"].endswith("/dataInput.json")
         ]
-        self.assertEqual(len(data_input_parts), 3)
-        budget_input = json.loads(
-            decode_part(
-                definition,
-                (
-                    "sheets/8dcecfce-d29a-5de8-b1cd-29df3cf077ec/"
-                    "visuals/330d95e6-b32b-5f7c-ab1e-e00a68579c89/"
-                    "dataInput.json"
-                ),
-            ).decode("utf-8")
-        )
-        self.assertEqual(len(budget_input["columns"]), 2)
-        for column in budget_input["columns"]:
-            self.assertEqual(column["boundToFilterContext"], 1)
-            self.assertEqual(column["sidecarHydrationStatus"], 10)
-            self.assertEqual(column["status"], 10)
-            self.assertIsNone(column["sidecarHydrationLeaseAt"])
-            self.assertNotIn("disableWriteAccess", column)
+        self.assertEqual(len(data_input_parts), 0)
 
     def test_pipeline_template_contains_no_legacy_environment_ids(self) -> None:
         template = (
