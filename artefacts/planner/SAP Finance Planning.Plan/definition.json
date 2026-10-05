@@ -91,6 +91,14 @@
           "isEmbedded": false
         }
       ]
+    },
+    {
+      "recordGuid": "01a10bc4-6a78-749f-a103-061d9fdef026",
+      "displayName": "Finance Executive Intelligence",
+      "sheetType": "REPORTING",
+      "isHidden": false,
+      "order": 5,
+      "workloadItemEntityVisuals": []
     }
   ]
 }

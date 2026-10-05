@@ -1,4 +1,32 @@
 {
+  "intelligenceSheets": [
+    {
+      "sheetId": "01a10bc4-6a78-749f-a103-061d9fdef026",
+      "name": "Finance Executive Intelligence",
+      "purpose": "Executive actual, budget, forecast, and variance reporting",
+      "visuals": [
+        {
+          "type": "KPI",
+          "category": "Fiscal Period Name",
+          "actual": "Plan vs Actual Actual Amount",
+          "comparisons": [
+            "Plan vs Actual Plan Amount",
+            "Plan vs Actual Forecast Amount"
+          ]
+        },
+        {
+          "type": "Integrated variance column",
+          "category": "Fiscal Period Name",
+          "actual": "Plan vs Actual Actual Amount",
+          "comparisons": [
+            "Plan vs Actual Plan Amount",
+            "Plan vs Actual Forecast Amount",
+            "Variance to Plan Percentage"
+          ]
+        }
+      ]
+    }
+  ],
   "sheets": [
     {
       "sheetId": "8398206f-8c4a-5bd4-af2b-dc0f3af52243",

@@ -264,6 +264,7 @@ class AcceleratorDeployer:
                 semantic_model_connection_id=semantic_model_connection["id"],
                 plan_sql_connection_id=planning_sql_connection["id"],
             ),
+            preserve_existing_definition=True,
         )
         self._ensure_definition_item(
             workspace_id,
@@ -440,6 +441,7 @@ class AcceleratorDeployer:
         description: str,
         definition: dict[str, Any],
         creation_payload: dict[str, Any] | None = None,
+        preserve_existing_definition: bool = False,
     ) -> FabricItem:
         validate_deployable_definition(definition)
         existing = self.client.find_item(workspace_id, display_name, item_type)
@@ -448,13 +450,23 @@ class AcceleratorDeployer:
                 raise FabricApiError(
                     f"{item_type} {display_name!r} already exists"
                 )
-            self.client.update_definition(workspace_id, existing.id, definition)
+            if not preserve_existing_definition:
+                self.client.update_definition(
+                    workspace_id, existing.id, definition
+                )
             self.client.move_items(
                 workspace_id,
                 [existing.id],
                 self.folders[FOLDER_BY_TYPE[item_type]],
             )
-            LOGGER.info("Updated %s: %s (%s)", item_type, display_name, existing.id)
+            action = "Preserved" if preserve_existing_definition else "Updated"
+            LOGGER.info(
+                "%s %s: %s (%s)",
+                action,
+                item_type,
+                display_name,
+                existing.id,
+            )
             self.items[display_name] = existing
             return existing
         create_definition = definition if creation_payload is None else None

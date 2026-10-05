@@ -109,7 +109,8 @@ Fabric metadata collisions.
 6. Deploy and bind all nine transformation and validation notebooks under `notebooks`
 7. Deploy the Direct Lake semantic model under `semantic models`
 8. Deploy the report under `reports`
-9. Deploy `SAP Finance Planning Enterprise` under `planner`
+9. Deploy `SAP Finance Planning Enterprise` with five Planning sheets and one
+   Intelligence sheet under `planner`
 10. Deploy the Finance Data Agent under `agents`
 11. Deploy the pipeline under `pipelines`
 12. Validate the final item inventory
@@ -153,6 +154,11 @@ notebook, semantic model, and connection identifiers before publication. It
 never runs the data pipeline. After a successful deployment, the team runs
 `pl_full_medallion_sap_finance` to create Silver, Gold, the Materialized Lake
 Views, and validation evidence.
+
+For an existing Plan, `-Overwrite` preserves the live Plan definition instead
+of replacing it. This protects UI-initialized editable inputs, writeback
+sidecar state, and Intelligence-sheet visuals that are not safely recreated
+by the public item-definition API.
 
 ## Authentication
 

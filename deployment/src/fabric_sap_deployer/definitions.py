@@ -492,6 +492,17 @@ def plan_definition(
                 ),
             ]
         )
+    for sheet in plan_spec.get("intelligenceSheets", []):
+        sheet_root = f"sheets/{sheet['sheetId']}"
+        definition_parts.extend(
+            [
+                part(f"{sheet_root}/sheet.json", json_text(_plan_sheet(sheet))),
+                part(
+                    f"{sheet_root}/commentSettings.json",
+                    json_text(_plan_comment_settings(sheet)),
+                ),
+            ]
+        )
     return {"parts": definition_parts}
 
 

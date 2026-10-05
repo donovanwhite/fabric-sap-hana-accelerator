@@ -35,7 +35,7 @@ write to it directly.
 
 ## Finance planning workspace
 
-The Plan contains five purpose-specific sheets:
+The Plan contains six purpose-specific sheets:
 
 | Sheet | Audience | Purpose | Writeback |
 | --- | --- | --- | --- |
@@ -44,6 +44,7 @@ The Plan contains five purpose-specific sheets:
 | Rolling Forecast | FP&A and business finance | Reforecast remaining periods against actuals | `plan.finance_forecast_writeback` |
 | Scenario Assumptions | FP&A and scenario owners | Inflation, FX, headcount growth, and rationale inputs | `plan.finance_assumption_writeback` |
 | Actual vs Plan Review | Finance controllers | Detailed actual, plan, forecast, and variance investigation | Read-only |
+| Finance Executive Intelligence | CFO and finance leadership | KPI cards and integrated monthly actual, budget, forecast, and variance reporting | Read-only |
 
 All editable sheets use **Long with Changes** so revised values retain an
 auditable history rather than replacing the only stored value.
@@ -116,8 +117,17 @@ Plan. It complements a Planning sheet rather than replacing it:
 * Intelligence sheets can compare actuals, budgets, forecasts, and simulations
   in real time without becoming the system of record for input values.
 
-Use an Intelligence sheet for executive review and narrative reporting after
-the Planning sheets and writeback workflow are stable.
+The deployed `Finance Executive Intelligence` sheet contains:
+
+* A KPI card with Actual as the primary value and Plan and Forecast as
+  comparisons
+* An integrated variance column chart by fiscal period using Actual, Plan,
+  Forecast, and Plan Variance Percentage
+
+The public Plan definition creates the empty reporting sheet on a fresh
+tenant. Visual authoring is initialized through the Fabric UI, and overwrite
+deployment preserves the existing Plan definition so Intelligence visuals,
+editable inputs, and writeback sidecar state are not deleted.
 
 ## Deployment
 

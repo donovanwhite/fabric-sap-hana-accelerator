@@ -209,14 +209,32 @@ class DefinitionTests(unittest.TestCase):
             reference["artifactId"],
             "22222222-2222-2222-2222-222222222222",
         )
-        self.assertEqual(len(plan["sheets"]), 5)
+        self.assertEqual(len(plan["sheets"]), 6)
         self.assertTrue(
-            all(sheet["sheetType"] == "PLANNING" for sheet in plan["sheets"])
+            all(
+                sheet["sheetType"] == "PLANNING"
+                for sheet in plan["sheets"][:5]
+            )
+        )
+        intelligence = plan["sheets"][5]
+        self.assertEqual(intelligence["sheetType"], "REPORTING")
+        self.assertEqual(
+            intelligence["displayName"], "Finance Executive Intelligence"
         )
         self.assertTrue(
             all(
                 len(sheet["workloadItemEntityVisuals"]) == 1
-                for sheet in plan["sheets"]
+                for sheet in plan["sheets"][:5]
+            )
+        )
+        self.assertEqual(intelligence["workloadItemEntityVisuals"], [])
+        self.assertIsNotNone(
+            decode_part(
+                definition,
+                (
+                    "sheets/01a10bc4-6a78-749f-a103-061d9fdef026/"
+                    "sheet.json"
+                ),
             )
         )
         budget_properties = json.loads(
