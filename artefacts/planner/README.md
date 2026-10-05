@@ -86,6 +86,39 @@ positive revenue variance is normally favorable. Add those rules through the
 Plan **Format** ribbon only after the business meaning is explicit, and verify
 that **Hide value** is disabled so the rule cannot suppress finance values.
 
+## Demonstration budget
+
+The deployed demonstration Planner contains a governed pseudo-budget created
+through the **Budget Input** planning sheet:
+
+1. `Budget Amount Local` is seeded from
+   `Plan vs Actual Actual Amount` with **Copy from another series**.
+2. `Pseudo Budget Projection` applies a five-percent planning uplift:
+   `[Plan vs Actual Actual Amount] * 1.05`.
+3. `Pseudo Budget Variance` shows the projected variance:
+   `[Plan vs Actual Actual Amount] - [Pseudo Budget Projection]`.
+4. Writeback targets
+   `SAP_FIN_PLAN_DB.plan.finance_budget_writeback` through
+   `conn_sap_finance_planning_sql`.
+
+The input and formulas are created in the Planner UI because Fabric must
+initialize their internal sidecar state. The reproducible configuration is
+recorded in [`finance-plan-spec.json`](./finance-plan-spec.json).
+
+## Intelligence sheets
+
+An Intelligence sheet is the reporting and storytelling surface of Fabric
+Plan. It complements a Planning sheet rather than replacing it:
+
+* Planning sheets capture budgets, forecasts, assumptions, and writeback.
+* Intelligence sheets present those values through formatted financial
+  statements, KPI cards, charts, annotations, and presentation-ready exports.
+* Intelligence sheets can compare actuals, budgets, forecasts, and simulations
+  in real time without becoming the system of record for input values.
+
+Use an Intelligence sheet for executive review and narrative reporting after
+the Planning sheets and writeback workflow are stable.
+
 ## Deployment
 
 The installer creates:

@@ -251,6 +251,24 @@ class DefinitionTests(unittest.TestCase):
             if item["path"].endswith("/dataInput.json")
         ]
         self.assertEqual(len(data_input_parts), 0)
+        plan_spec = json.loads(
+            (ARTEFACTS / "planner" / "finance-plan-spec.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        budget_sheet = next(
+            sheet
+            for sheet in plan_spec["sheets"]
+            if sheet["name"] == "Budget Input"
+        )
+        self.assertEqual(
+            budget_sheet["demoSeed"]["source"],
+            "Plan vs Actual Actual Amount",
+        )
+        self.assertEqual(
+            [item["name"] for item in budget_sheet["demoFormulaMeasures"]],
+            ["Pseudo Budget Projection", "Pseudo Budget Variance"],
+        )
 
     def test_pipeline_template_contains_no_legacy_environment_ids(self) -> None:
         template = (

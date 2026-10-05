@@ -42,6 +42,23 @@
         {"guid": "91ce8a9c-cd9d-5b5a-b92c-a6ae55c688dd", "name": "Budget Amount Local", "kind": "Number", "description": "Planner-entered local currency budget amount", "column": "budget_amount_local"},
         {"guid": "a04cb9e4-49d1-5611-8346-e813baa69a94", "name": "Budget Comment", "kind": "Text", "description": "Budget rationale, risk, or management note", "column": "budget_comment"}
       ],
+      "demoSeed": {
+        "input": "Budget Amount Local",
+        "source": "Plan vs Actual Actual Amount",
+        "method": "Copy from another series"
+      },
+      "demoFormulaMeasures": [
+        {
+          "name": "Pseudo Budget Projection",
+          "formula": "[Plan vs Actual Actual Amount] * 1.05",
+          "description": "Illustrative budget equal to actuals plus five percent"
+        },
+        {
+          "name": "Pseudo Budget Variance",
+          "formula": "[Plan vs Actual Actual Amount] - [Pseudo Budget Projection]",
+          "description": "Actual amount less the illustrative five-percent budget projection"
+        }
+      ],
       "writebackTable": "finance_budget_writeback"
     },
     {
