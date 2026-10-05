@@ -219,6 +219,24 @@ class DefinitionTests(unittest.TestCase):
                 for sheet in plan["sheets"]
             )
         )
+        budget_properties = json.loads(
+            decode_part(
+                definition,
+                (
+                    "sheets/8dcecfce-d29a-5de8-b1cd-29df3cf077ec/"
+                    "visuals/330d95e6-b32b-5f7c-ab1e-e00a68579c89/"
+                    "properties.json"
+                ),
+            ).decode("utf-8")
+        )["properties"]
+        theme = budget_properties["visualState"]["themeColors"]
+        self.assertEqual(theme["rowOddColor"], "#EAF2F8")
+        self.assertEqual(theme["positiveColor"], "#107C10")
+        self.assertEqual(theme["negativeColor"], "#D13438")
+        self.assertEqual(theme["valueColor"], "#243447")
+        self.assertTrue(
+            budget_properties["visualStyles"]["background"]["isEnabled"]
+        )
         writeback_parts = [
             item
             for item in definition["parts"]

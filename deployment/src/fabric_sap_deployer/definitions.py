@@ -330,22 +330,22 @@ def _plan_visual_properties(sheet: dict[str, Any]) -> dict[str, Any]:
         bucket_order["ameasure"] += 1
     visual_styles = {
         "background": {
-            "backgroundColor": "#FFFFFF",
-            "isEnabled": False,
+            "backgroundColor": "#F7F9FC",
+            "isEnabled": True,
         },
         "border": {
-            "color": "#DDDDDD",
-            "isEnabled": False,
+            "color": "#A9C4D6",
+            "isEnabled": True,
             "side": "all",
             "width": 1,
         },
         "cornerRadius": {
             "isCustomCornerRadius": False,
             "isEnabled": True,
-            "radiusBottomLeft": 0,
-            "radiusBottomRight": 0,
-            "radiusTopLeft": 0,
-            "radiusTopRight": 0,
+            "radiusBottomLeft": 4,
+            "radiusBottomRight": 4,
+            "radiusTopLeft": 4,
+            "radiusTopRight": 4,
         },
         "isTooltipEnabled": True,
         "padding": {
@@ -385,6 +385,25 @@ def _plan_visual_properties(sheet: dict[str, Any]) -> dict[str, Any]:
         "varianceInTooltip": True,
         "varianceTooltipType": "both",
     }
+    theme_colors = {
+        "chartTheme": "trafficlights",
+        "enableRowHover": "rowAlternate",
+        "enableVarianceColor": True,
+        "invertVarianceColor": False,
+        "lineStyleRecentColor": "",
+        "measureOnlyHighlight": False,
+        "migrationVersion": 1,
+        "negativeColor": "#D13438",
+        "positiveColor": "#107C10",
+        "previousThemeType": "trafficlights",
+        "rowEvenColor": "#FFFFFF",
+        "rowHoverColor": "#DDEBF7",
+        "rowHoverTextColor": "#103C5A",
+        "rowOddColor": "#EAF2F8",
+        "tableThemeType": False,
+        "themeType": "trafficlights",
+        "valueColor": "#243447",
+    }
     return {
         "$schema": (
             "https://developer.microsoft.com/json-schemas/fabric/item/plan/"
@@ -418,6 +437,7 @@ def _plan_visual_properties(sheet: dict[str, Any]) -> dict[str, Any]:
                     "filterContextJson": {},
                 },
                 "locale": "en-US",
+                "themeColors": theme_colors,
                 "visualStyles": visual_styles,
             },
             "visualStyles": visual_styles,
