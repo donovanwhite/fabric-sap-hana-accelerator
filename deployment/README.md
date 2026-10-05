@@ -20,6 +20,11 @@ The only Fabric prerequisites are:
 * An existing workspace on active Fabric capacity
 * Contributor or higher access to that workspace
 * An authorized Shareable Cloud `FabricSql` connection using OAuth2
+* An authorized Shareable Cloud `PowerBIDatasets` connection using OAuth2
+
+All accelerator-owned connections use lowercase names prefixed with `conn_`.
+The defaults are `conn_sap_finance_sql` and
+`conn_sap_finance_planning_dataset`.
 
 The local machine requires Python 3.11–3.13 and an authenticated Azure CLI.
 
@@ -38,7 +43,8 @@ different name, or has duplicate display names, pass the connection ID:
 ```powershell
 .\deployment\deploy.ps1 `
   -Workspace "<workspace-id>" `
-  -SqlConnection "<connection-name-or-id>"
+  -SqlConnection "<connection-name-or-id>" `
+  -SemanticModelConnection "<connection-name-or-id>"
 ```
 
 The access token issued by `az login` determines the Fabric tenant. The
@@ -55,8 +61,9 @@ creating items:
 
 Dry-run resolves the connection, verifies that it is a Shareable Cloud
 `FabricSql` connection using OAuth2, and calls the Fabric connection test API.
-An offline, expired, ambiguous, missing, or incorrectly typed connection stops
-the deployment before any workspace item is created.
+It performs the same checks for the `PowerBIDatasets` connection used by the
+Plan item. An offline, expired, ambiguous, missing, or incorrectly typed
+connection stops the deployment before any workspace item is created.
 
 ## Create the SQL connection
 
@@ -92,12 +99,14 @@ Fabric metadata collisions.
 2. Create/reuse workload folders
 3. Create both schema-enabled Lakehouses under `lakehouses`
 4. Create and seed `SAP_FIN_DB` under `database`
-5. Deploy and bind all nine transformation and validation notebooks under `notebooks`
-6. Deploy the Direct Lake semantic model under `semantic models`
-7. Deploy the report under `reports`
-8. Deploy the Finance Data Agent under `agents`
-9. Deploy the pipeline under `pipelines`
-10. Validate the final item inventory
+5. Create `SAP_FIN_PLAN_DB` under `database`
+6. Deploy and bind all nine transformation and validation notebooks under `notebooks`
+7. Deploy the Direct Lake semantic model under `semantic models`
+8. Deploy the report under `reports`
+9. Deploy `SAP Finance Planning Enterprise` under `planner`
+10. Deploy the Finance Data Agent under `agents`
+11. Deploy the pipeline under `pipelines`
+12. Validate the final item inventory
 
 The folder structure is:
 
@@ -107,6 +116,7 @@ database
 lakehouses
 notebooks
 pipelines
+planner
 reports
 semantic models
 ```
@@ -120,6 +130,13 @@ configured through the `p_table_config` pipeline parameter.
 The semantic model uses Direct Lake on SQL. The installer resolves the Gold
 Lakehouse SQL endpoint and database name and substitutes them into the TMDL
 expression before deployment.
+
+The Plan item uses the `SAP Finance` semantic model for governed actuals. Fabric
+creates its internal application database automatically. The separate
+`SAP_FIN_PLAN_DB` stores governed scenarios, assumptions, and writeback data.
+After the first deployment, create an OAuth2 Fabric SQL connection to that
+database and configure the Planning visual writeback destination as described
+in [`artefacts/planner/README.md`](../artefacts/planner/README.md).
 
 The installer is idempotent with `-Overwrite`. Generated definitions are
 checked for unresolved deployment tokens and source-tenant workspace, item,

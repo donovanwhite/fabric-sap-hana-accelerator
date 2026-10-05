@@ -14,7 +14,9 @@ from fabric_sap_deployer.definitions import (
     data_agent_definition,
     directory_definition,
     notebook_definition,
+    plan_definition,
     pipeline_definition,
+    planner_database_definition,
     sql_database_definition,
     validate_deployable_definition,
 )
@@ -163,6 +165,82 @@ class DefinitionTests(unittest.TestCase):
         for notebook_id in notebook_ids.values():
             self.assertIn(notebook_id, serialized)
 
+    def test_plan_definition_rebinds_semantic_model(self) -> None:
+        definition = plan_definition(
+            ARTEFACTS / "planner" / "SAP Finance Planning.Plan",
+            workspace_id="11111111-1111-1111-1111-111111111111",
+            workspace_name="Finance Test",
+            semantic_model_id="22222222-2222-2222-2222-222222222222",
+            semantic_model_connection_id=(
+                "33333333-3333-3333-3333-333333333333"
+            ),
+            plan_database_id="44444444-4444-4444-4444-444444444444",
+            plan_sql_connection_id=(
+                "55555555-5555-5555-5555-555555555555"
+            ),
+        )
+        validate_deployable_definition(definition)
+        plan = json.loads(
+            decode_part(definition, "definition.json").decode("utf-8")
+        )
+        reference = plan["semanticModelReference"]
+
+        self.assertEqual(
+            reference["semanticModel"]["workspaceId"],
+            "11111111-1111-1111-1111-111111111111",
+        )
+        self.assertEqual(
+            reference["semanticModel"]["itemId"],
+            "22222222-2222-2222-2222-222222222222",
+        )
+        self.assertEqual(
+            reference["connection"]["connectionId"],
+            "33333333-3333-3333-3333-333333333333",
+        )
+        self.assertTrue(reference["directLakeMode"])
+        self.assertEqual(len(plan["sheets"]), 5)
+        self.assertTrue(
+            all(sheet["sheetType"] == "PLANNING" for sheet in plan["sheets"])
+        )
+        self.assertTrue(
+            all(
+                len(sheet["workloadItemEntityVisuals"]) == 1
+                for sheet in plan["sheets"]
+            )
+        )
+        writeback = json.loads(
+            decode_part(
+                definition,
+                (
+                    "sheets/8dcecfce-d29a-5de8-b1cd-29df3cf077ec/"
+                    "visuals/330d95e6-b32b-5f7c-ab1e-e00a68579c89/"
+                    "writeback.json"
+                ),
+            ).decode("utf-8")
+        )
+        destination = writeback["destinations"][0]
+        self.assertEqual(
+            destination["connectionId"],
+            "55555555-5555-5555-5555-555555555555",
+        )
+        self.assertEqual(
+            destination["settings"]["database"]["itemId"],
+            "44444444-4444-4444-4444-444444444444",
+        )
+        self.assertEqual(len(destination["settingsHash"]), 64)
+        writeback_parts = [
+            item
+            for item in definition["parts"]
+            if item["path"].endswith("/writeback.json")
+        ]
+        self.assertEqual(len(writeback_parts), 3)
+        data_input_parts = [
+            item
+            for item in definition["parts"]
+            if item["path"].endswith("/dataInput.json")
+        ]
+        self.assertEqual(len(data_input_parts), 5)
+
     def test_pipeline_template_contains_no_legacy_environment_ids(self) -> None:
         template = (
             ARTEFACTS / "pipeline" / "pipeline-content.json"
@@ -210,6 +288,19 @@ class DefinitionTests(unittest.TestCase):
         self.assertIn("MERGE SAPABAP1.ACDOCA", sql)
         self.assertIn("MERGE SAPDEMO.GL_ACCOUNT_REFERENCE", sql)
         self.assertNotIn("LAST_MODIFIED_UTC", sql)
+
+    def test_planner_database_contains_governance_tables(self) -> None:
+        definition = planner_database_definition(ARTEFACTS)
+        validate_deployable_definition(definition)
+        sql = decode_part(definition, "Scripts/Deploy.sql").decode("utf-8")
+
+        self.assertIn("CREATE TABLE [plan].[scenario]", sql)
+        self.assertIn("CREATE TABLE [plan].[assumption]", sql)
+        self.assertIn("CREATE TABLE audit.planning_release", sql)
+        self.assertIn("CK_scenario_year_range", sql)
+        self.assertNotIn(
+            "CREATE TABLE [plan].[finance_plan_writeback]", sql
+        )
 
     def test_data_agent_contains_instructions_and_ten_examples(self) -> None:
         definition = data_agent_definition(

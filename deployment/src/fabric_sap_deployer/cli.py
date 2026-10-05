@@ -40,6 +40,14 @@ def create_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--semantic-model-connection",
+        default="conn_sap_finance_planning_dataset",
+        help=(
+            "Authorized ShareableCloud PowerBIDatasets OAuth2 connection "
+            "name or ID (default: conn_sap_finance_planning_dataset)"
+        ),
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Validate prerequisites and print the deployment plan",
@@ -80,6 +88,7 @@ def main() -> int:
             DeploymentOptions(
                 workspace=args.workspace,
                 sql_connection=args.sql_connection,
+                semantic_model_connection=args.semantic_model_connection,
                 overwrite=args.overwrite,
                 dry_run=args.dry_run,
             ),

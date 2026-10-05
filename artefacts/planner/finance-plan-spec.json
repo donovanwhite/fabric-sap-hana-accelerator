@@ -1,0 +1,120 @@
+{
+  "sheets": [
+    {
+      "sheetId": "8398206f-8c4a-5bd4-af2b-dc0f3af52243",
+      "visualId": "5565b643-ac1b-5537-b5cd-0a2ee50fa12a",
+      "name": "Executive Plan Summary",
+      "dimensions": [
+        {"table": "Company", "column": "Company Code", "dataType": "String", "bucket": "rows"},
+        {"table": "Division", "column": "Division Code", "dataType": "String", "bucket": "rows"},
+        {"table": "Fiscal Period", "column": "Fiscal Year", "dataType": "Int64", "bucket": "columns", "hierarchy": "Fiscal Period Hierarchy"},
+        {"table": "Fiscal Period", "column": "Fiscal Period Name", "dataType": "String", "bucket": "columns", "hierarchy": "Fiscal Period Hierarchy"}
+      ],
+      "nativeMeasures": [
+        {"table": "Plan vs Actual Monthly", "name": "Plan vs Actual Actual Amount", "format": "#,##0.00"},
+        {"table": "Plan vs Actual Monthly", "name": "Plan vs Actual Plan Amount", "format": "#,##0.00"},
+        {"table": "Plan vs Actual Monthly", "name": "Plan vs Actual Forecast Amount", "format": "#,##0.00"},
+        {"table": "Plan vs Actual Monthly", "name": "Variance to Plan", "format": "#,##0.00"},
+        {"table": "Plan vs Actual Monthly", "name": "Variance to Plan Percentage", "format": "0.00%"},
+        {"table": "Plan vs Actual Monthly", "name": "Variance to Forecast", "format": "#,##0.00"},
+        {"table": "Plan vs Actual Monthly", "name": "Variance to Forecast Percentage", "format": "0.00%"}
+      ],
+      "inputs": []
+    },
+    {
+      "sheetId": "8dcecfce-d29a-5de8-b1cd-29df3cf077ec",
+      "visualId": "330d95e6-b32b-5f7c-ab1e-e00a68579c89",
+      "name": "Budget Input",
+      "dimensions": [
+        {"table": "Company", "column": "Company Code", "dataType": "String", "bucket": "rows"},
+        {"table": "Division", "column": "Division Code", "dataType": "String", "bucket": "rows"},
+        {"table": "Profit Center", "column": "Profit Center Code", "dataType": "String", "bucket": "rows"},
+        {"table": "Cost Center", "column": "Cost Center Code", "dataType": "String", "bucket": "rows"},
+        {"table": "GL Account", "column": "GL Account Code", "dataType": "String", "bucket": "rows"},
+        {"table": "Plan vs Actual Monthly", "column": "Scenario", "dataType": "String", "bucket": "rows"},
+        {"table": "Plan vs Actual Monthly", "column": "Plan Version", "dataType": "String", "bucket": "rows"},
+        {"table": "Fiscal Period", "column": "Fiscal Year", "dataType": "Int64", "bucket": "columns", "hierarchy": "Fiscal Period Hierarchy"},
+        {"table": "Fiscal Period", "column": "Fiscal Period Name", "dataType": "String", "bucket": "columns", "hierarchy": "Fiscal Period Hierarchy"}
+      ],
+      "nativeMeasures": [
+        {"table": "Plan vs Actual Monthly", "name": "Plan vs Actual Actual Amount", "format": "#,##0.00"},
+        {"table": "Plan vs Actual Monthly", "name": "Plan vs Actual Plan Amount", "format": "#,##0.00"},
+        {"table": "Plan vs Actual Monthly", "name": "Variance to Plan", "format": "#,##0.00"},
+        {"table": "Plan vs Actual Monthly", "name": "Variance to Plan Percentage", "format": "0.00%"}
+      ],
+      "inputs": [
+        {"guid": "91ce8a9c-cd9d-5b5a-b92c-a6ae55c688dd", "name": "Budget Amount Local", "kind": "Number", "description": "Planner-entered local currency budget amount", "column": "budget_amount_local"},
+        {"guid": "a04cb9e4-49d1-5611-8346-e813baa69a94", "name": "Budget Comment", "kind": "Text", "description": "Budget rationale, risk, or management note", "column": "budget_comment"}
+      ],
+      "writebackTable": "finance_budget_writeback"
+    },
+    {
+      "sheetId": "cdeeb4c8-804d-5f69-8708-f5d9dfc403cc",
+      "visualId": "6af603f4-f5f8-57f0-82cf-e2ccde78d537",
+      "name": "Rolling Forecast",
+      "dimensions": [
+        {"table": "Company", "column": "Company Code", "dataType": "String", "bucket": "rows"},
+        {"table": "Division", "column": "Division Code", "dataType": "String", "bucket": "rows"},
+        {"table": "Profit Center", "column": "Profit Center Code", "dataType": "String", "bucket": "rows"},
+        {"table": "Cost Center", "column": "Cost Center Code", "dataType": "String", "bucket": "rows"},
+        {"table": "GL Account", "column": "GL Account Code", "dataType": "String", "bucket": "rows"},
+        {"table": "Plan vs Actual Monthly", "column": "Plan Version", "dataType": "String", "bucket": "rows"},
+        {"table": "Fiscal Period", "column": "Fiscal Year", "dataType": "Int64", "bucket": "columns", "hierarchy": "Fiscal Period Hierarchy"},
+        {"table": "Fiscal Period", "column": "Fiscal Period Name", "dataType": "String", "bucket": "columns", "hierarchy": "Fiscal Period Hierarchy"}
+      ],
+      "nativeMeasures": [
+        {"table": "Plan vs Actual Monthly", "name": "Plan vs Actual Actual Amount", "format": "#,##0.00"},
+        {"table": "Plan vs Actual Monthly", "name": "Plan vs Actual Forecast Amount", "format": "#,##0.00"},
+        {"table": "Plan vs Actual Monthly", "name": "Variance to Forecast", "format": "#,##0.00"},
+        {"table": "Plan vs Actual Monthly", "name": "Variance to Forecast Percentage", "format": "0.00%"}
+      ],
+      "inputs": [
+        {"guid": "226b6c25-953d-5e56-bfc6-2e928e58ca26", "name": "Forecast Amount Local", "kind": "Number", "description": "Planner-entered rolling forecast amount", "column": "forecast_amount_local"},
+        {"guid": "340ab623-a604-5754-b8aa-894a977daaad", "name": "Forecast Comment", "kind": "Text", "description": "Forecast movement rationale and action note", "column": "forecast_comment"}
+      ],
+      "writebackTable": "finance_forecast_writeback"
+    },
+    {
+      "sheetId": "3140fd7c-edc8-5cc3-af3a-55b545e83c99",
+      "visualId": "abbfd3f0-21ac-5b90-a484-ba71029053d0",
+      "name": "Scenario Assumptions",
+      "dimensions": [
+        {"table": "Company", "column": "Company Code", "dataType": "String", "bucket": "rows"},
+        {"table": "Division", "column": "Division Code", "dataType": "String", "bucket": "rows"},
+        {"table": "Fiscal Period", "column": "Fiscal Year", "dataType": "Int64", "bucket": "columns", "hierarchy": "Fiscal Period Hierarchy"}
+      ],
+      "nativeMeasures": [],
+      "inputs": [
+        {"guid": "f36fe518-4863-591d-bd5f-5e340584ca7c", "name": "Inflation Rate", "kind": "Number", "description": "Scenario inflation assumption as a decimal rate", "column": "inflation_rate"},
+        {"guid": "4ea6579a-1a9a-5bc2-8b15-bdcbbc71b60d", "name": "FX Rate", "kind": "Number", "description": "Scenario foreign exchange rate assumption", "column": "fx_rate"},
+        {"guid": "fc4c5f3c-651b-5dec-bb3f-3885b4362c86", "name": "Headcount Growth Rate", "kind": "Number", "description": "Scenario headcount growth assumption as a decimal rate", "column": "headcount_growth_rate"},
+        {"guid": "9596adde-a36c-5c3c-9c98-75c7aad63ce6", "name": "Assumption Comment", "kind": "Text", "description": "Source, rationale, owner, and risk note", "column": "assumption_comment"}
+      ],
+      "writebackTable": "finance_assumption_writeback"
+    },
+    {
+      "sheetId": "cc19ccfa-9021-53d2-90b9-75187075968b",
+      "visualId": "1032ee3c-3694-54e8-bfc4-336861a26acc",
+      "name": "Actual vs Plan Review",
+      "dimensions": [
+        {"table": "Company", "column": "Company Code", "dataType": "String", "bucket": "rows"},
+        {"table": "Division", "column": "Division Code", "dataType": "String", "bucket": "rows"},
+        {"table": "Profit Center", "column": "Profit Center Code", "dataType": "String", "bucket": "rows"},
+        {"table": "Cost Center", "column": "Cost Center Code", "dataType": "String", "bucket": "rows"},
+        {"table": "GL Account", "column": "GL Account Code", "dataType": "String", "bucket": "rows"},
+        {"table": "Fiscal Period", "column": "Fiscal Year", "dataType": "Int64", "bucket": "columns", "hierarchy": "Fiscal Period Hierarchy"},
+        {"table": "Fiscal Period", "column": "Fiscal Period Name", "dataType": "String", "bucket": "columns", "hierarchy": "Fiscal Period Hierarchy"}
+      ],
+      "nativeMeasures": [
+        {"table": "Plan vs Actual Monthly", "name": "Plan vs Actual Actual Amount", "format": "#,##0.00"},
+        {"table": "Plan vs Actual Monthly", "name": "Plan vs Actual Plan Amount", "format": "#,##0.00"},
+        {"table": "Plan vs Actual Monthly", "name": "Plan vs Actual Forecast Amount", "format": "#,##0.00"},
+        {"table": "Plan vs Actual Monthly", "name": "Variance to Plan", "format": "#,##0.00"},
+        {"table": "Plan vs Actual Monthly", "name": "Variance to Plan Percentage", "format": "0.00%"},
+        {"table": "Plan vs Actual Monthly", "name": "Variance to Forecast", "format": "#,##0.00"},
+        {"table": "Plan vs Actual Monthly", "name": "Variance to Forecast Percentage", "format": "0.00%"}
+      ],
+      "inputs": []
+    }
+  ]
+}

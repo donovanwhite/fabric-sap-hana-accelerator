@@ -1,0 +1,50 @@
+{
+  "destinationDatabase": "SAP_FIN_PLAN_DB",
+  "destinationSchema": "plan",
+  "destinationTable": "finance_plan_writeback",
+  "writebackType": "Long with Changes",
+  "grain": [
+    "Company Code",
+    "Division Code",
+    "Profit Center Code",
+    "Cost Center Code",
+    "GL Account",
+    "Fiscal Year",
+    "Fiscal Period",
+    "Scenario",
+    "Plan Version"
+  ],
+  "measures": [
+    {
+      "name": "Planned Amount Local",
+      "dataType": "decimal(23,2)",
+      "required": true
+    },
+    {
+      "name": "Forecast Amount Local",
+      "dataType": "decimal(23,2)",
+      "required": false
+    },
+    {
+      "name": "Planner Comment",
+      "dataType": "nvarchar(1000)",
+      "required": false
+    }
+  ],
+  "timeSemantics": {
+    "calendar": "SAP fiscal calendar",
+    "periodRange": "1-16",
+    "timeZone": "UTC"
+  },
+  "nullBehavior": {
+    "dimensionKeys": "Not allowed for configured planning grain",
+    "plannedAmount": "Not allowed",
+    "forecastAmount": "Allowed",
+    "comment": "Allowed"
+  },
+  "ownership": {
+    "actuals": "lh_gld_finance via SAP Finance semantic model",
+    "planInputs": "SAP_FIN_PLAN_DB",
+    "writebackTableLifecycle": "Created and managed by Fabric Planning"
+  }
+}

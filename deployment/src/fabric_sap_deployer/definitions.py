@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import csv
+import hashlib
 import json
 import re
 import uuid
@@ -44,6 +45,11 @@ UNRESOLVED_DEPLOYMENT_TOKENS = frozenset(
         "__BRONZE_LAKEHOUSE_ID__",
         "__NOTEBOOK_ID__",
         "__SEMANTIC_MODEL_ID__",
+        "__SEMANTIC_MODEL_CONNECTION_ID__",
+        "__PLAN_DATABASE_ID__",
+        "__PLAN_SQL_CONNECTION_ID__",
+        "__WRITEBACK_SETTINGS_HASH__",
+        "__WORKSPACE_NAME__",
         "__GOLD_SQL_SERVER__",
         "__GOLD_SQL_DATABASE__",
     }
@@ -166,6 +172,497 @@ def directory_definition(
         else:
             parts.append(part(relative, path.read_bytes()))
     return {"format": format_name, "parts": parts}
+
+
+def _plan_sheet(sheet: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "$schema": (
+            "https://developer.microsoft.com/json-schemas/fabric/item/plan/"
+            "definition/Sheets/Sheet/1.0.0/schema.json"
+        ),
+        "properties": {
+            "pageLevelFilterAssignments": [],
+            "entityLevelVariables": [],
+            "filterPanePosition": "RIGHT",
+            "topPositionFilterExpandConfig": {
+                "isFilterPaneCollapsed": False,
+                "expandedHeight": 240,
+            },
+            "canvasStyle": {
+                "dimension": {
+                    "type": "pixels",
+                    "width": 1440,
+                    "height": 900,
+                    "elementScalingUnit": "pixels",
+                },
+                "background": {
+                    "type": "color",
+                    "value": "#FFFFFF",
+                    "isEnabled": True,
+                    "fillMode": "fit",
+                    "opacity": 1,
+                    "color": "#FFFFFF",
+                    "imageUrl": "",
+                },
+                "wallpaper": {
+                    "value": {
+                        "type": "color",
+                        "color": "#F3F2F1",
+                        "imageUrl": "",
+                    },
+                    "isEnabled": True,
+                    "opacity": 1,
+                    "fillMode": "fit",
+                },
+                "border": {
+                    "color": "#D2D0CE",
+                    "side": "all",
+                    "width": 1,
+                    "isEnabled": False,
+                },
+                "shadow": {
+                    "blur": 0,
+                    "color": "#000000",
+                    "isEnabled": False,
+                    "placement": "outer",
+                    "side": "all",
+                    "width": 0,
+                    "opacity": 0,
+                    "distance": 0,
+                    "angle": 0,
+                },
+                "cornerRadius": {
+                    "isEnabled": False,
+                    "isCustomCornerRadius": False,
+                    "radiusBottomLeft": 0,
+                    "radiusBottomRight": 0,
+                    "radiusTopLeft": 0,
+                    "radiusTopRight": 0,
+                },
+                "isLocked": False,
+                "gridLineSettings": {
+                    "showGridLines": True,
+                    "snapToGrid": True,
+                    "gridRows": 18,
+                    "gridColumns": 24,
+                    "gridLayoutType": "fixed",
+                },
+                "showVisualGuide": True,
+                "showSmartGuide": True,
+                "verticalAlign": "top",
+                "scrollToZoom": False,
+                "mobileCanvas": {
+                    "editModeDimension": {"width": 375, "height": 812},
+                    "runtimeDimension": {"width": 375, "height": 812},
+                },
+            },
+            "assignmentColumnMap": {},
+            "visualGroupMap": {},
+            "sourceVisualsMeta": {},
+            "controlPanePosition": "RIGHT",
+        },
+    }
+
+
+def _plan_comment_settings(sheet: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "$schema": (
+            "https://developer.microsoft.com/json-schemas/fabric/item/plan/"
+            "definition/Sheets/CommentSettings/1.0.0/schema.json"
+        ),
+        "recordGuid": sheet["sheetId"],
+        "keepCommentPanelOpen": False,
+        "showStarredComments": True,
+        "allowComment": True,
+        "enableCommentsColumn": True,
+        "enableStatusColumn": True,
+        "rollUpComments": True,
+        "commentIndicatorDisplay": {
+            "type": "dot",
+            "pixel": 8,
+            "position": "top-right",
+        },
+        "notification": True,
+    }
+
+
+def _plan_data_input(sheet: dict[str, Any]) -> dict[str, Any]:
+    columns: list[dict[str, Any]] = []
+    for item in sheet["inputs"]:
+        if item["kind"] == "Number":
+            column_type = {
+                "Number": {
+                    "min_value": None,
+                    "max_value": None,
+                    "distribute_parent_value_to_children": True,
+                    "default_value": None,
+                }
+            }
+            data_input_type = 0
+        else:
+            column_type = {
+                "ShortText": {
+                    "default_value": None,
+                    "allow_entry_on_totals_or_subtotals": False,
+                    "prevent_null": False,
+                    "field_validation": "AnyValue",
+                    "minimum_length": None,
+                    "maximum_length": 1000,
+                }
+            }
+            data_input_type = 1
+        columns.append(
+            {
+                "measureGuid": item["guid"],
+                "visualId": sheet["visualId"],
+                "columnMeta": {
+                    "id": item["guid"],
+                    "label": item["name"],
+                    "measure_type": {
+                        "DataInput": {
+                            "id": item["guid"],
+                            "column_type": column_type,
+                            "title": item["name"],
+                            "disable_write_access": False,
+                        }
+                    },
+                    "data_type": item["kind"],
+                    "description": item["description"],
+                    "name": item["name"],
+                },
+                "name": item["name"],
+                "description": item["description"],
+                "dataInputType": data_input_type,
+                "disableWriteAccess": False,
+                "boundToFilterContext": True,
+            }
+        )
+    return {
+        "$schema": (
+            "https://developer.microsoft.com/json-schemas/fabric/item/plan/"
+            "definition/Planning/DataInput/1.0.0/schema.json"
+        ),
+        "columns": columns,
+    }
+
+
+def _plan_visual_properties(sheet: dict[str, Any]) -> dict[str, Any]:
+    assignments: list[dict[str, Any]] = []
+    bucket_order = {"rows": 0, "columns": 0, "ameasure": 0}
+    for dimension in sheet["dimensions"]:
+        bucket = dimension["bucket"]
+        assignment = {
+            "id": f"{dimension['table']}[{dimension['column']}]",
+            "sourceId": dimension["table"],
+            "bucketId": bucket,
+            "columnName": dimension["column"],
+            "dataType": dimension["dataType"],
+            "order": bucket_order[bucket],
+            "columnType": (
+                "Hierarchy Level"
+                if dimension.get("hierarchy")
+                else "Column"
+            ),
+            "sourceType": "PowerBI",
+            "tableName": dimension["table"],
+            "dataRoleType": "Grouping",
+        }
+        if dimension.get("hierarchy"):
+            assignment["hierarchyName"] = dimension["hierarchy"]
+        assignments.append(assignment)
+        bucket_order[bucket] += 1
+    for measure in sheet["nativeMeasures"]:
+        assignments.append(
+            {
+                "id": f"{measure['table']}[{measure['name']}]",
+                "sourceId": measure["table"],
+                "bucketId": "ameasure",
+                "columnName": measure["name"],
+                "dataType": "Double",
+                "order": bucket_order["ameasure"],
+                "columnType": "Measure",
+                "formatString": measure["format"],
+                "sourceType": "PowerBI",
+                "tableName": measure["table"],
+                "dataRoleType": "Measure",
+            }
+        )
+        bucket_order["ameasure"] += 1
+    for item in sheet["inputs"]:
+        assignments.append(
+            {
+                "id": item["guid"],
+                "sourceId": sheet["visualId"],
+                "bucketId": "ameasure",
+                "columnName": item["name"],
+                "dataType": (
+                    "Double" if item["kind"] == "Number" else "String"
+                ),
+                "order": bucket_order["ameasure"],
+                "columnType": "Measure",
+                "name": item["name"],
+                "dataRoleType": "Measure",
+                "measureGuid": item["guid"],
+            }
+        )
+        bucket_order["ameasure"] += 1
+    visual_styles = {
+        "background": {
+            "backgroundColor": "#FFFFFF",
+            "isEnabled": False,
+        },
+        "border": {
+            "color": "#DDDDDD",
+            "isEnabled": False,
+            "side": "all",
+            "width": 1,
+        },
+        "cornerRadius": {
+            "isCustomCornerRadius": False,
+            "isEnabled": True,
+            "radiusBottomLeft": 0,
+            "radiusBottomRight": 0,
+            "radiusTopLeft": 0,
+            "radiusTopRight": 0,
+        },
+        "isTooltipEnabled": True,
+        "padding": {
+            "bottomPadding": 5,
+            "isCustomPaddingSize": False,
+            "isEnabled": True,
+            "leftPadding": 5,
+            "rightPadding": 5,
+            "topPadding": 5,
+        },
+        "rotation": {"isEnabled": False, "transform": 0},
+        "shadow": {
+            "angle": 135,
+            "blur": 8,
+            "color": "#0000003f",
+            "distance": 10,
+            "isEnabled": False,
+            "opacity": 100,
+            "placement": "outer",
+            "side": "bottom",
+            "width": 0,
+        },
+        "showHelperTooltips": True,
+        "showSelectedSeriesInTooltip": False,
+        "tooltipPageId": "auto",
+        "tooltipStyle": {
+            "backgroundColor": "#FFFFFF",
+            "bold": False,
+            "fontFamily": "Segoe UI",
+            "fontSize": 12,
+            "italic": False,
+            "labelColor": "#252423",
+            "underline": False,
+            "valueColor": "#252423",
+        },
+        "tooltipType": "default",
+        "varianceInTooltip": True,
+        "varianceTooltipType": "both",
+    }
+    return {
+        "$schema": (
+            "https://developer.microsoft.com/json-schemas/fabric/item/plan/"
+            "definition/Planning/Properties/1.0.0/schema.json"
+        ),
+        "properties": {
+            "advanceLookup": [],
+            "dimension": {"height": 0.49, "width": 0.99},
+            "layerProperties": {
+                "layerProperties": {
+                    "groupIds": [],
+                    "isHidden": False,
+                    "name": "Planning",
+                },
+                "order": 0,
+            },
+            "pivotAssignments": assignments,
+            "position": {"x": 0.005, "y": 0.005},
+            "splitByCategory": {
+                "pivotValueAssignments": [],
+                "splitByCategoryAssignments": [],
+                "splitByCategoryItems": [],
+                "splitByDelimiter": "-",
+            },
+            "superFilterAssignments": [],
+            "visualState": {
+                "filterContextProperties": {
+                    "filterContextDimensions": [],
+                    "filterContextHash": None,
+                    "filterContextHashMap": {},
+                    "filterContextJson": {},
+                },
+                "locale": "en-US",
+                "visualStyles": visual_styles,
+            },
+            "visualStyles": visual_styles,
+            "visualType": 80,
+        },
+    }
+
+
+def _writeback_column_name(dimension: dict[str, Any]) -> str:
+    name = re.sub(r"[^a-z0-9]+", "_", dimension["column"].lower()).strip("_")
+    return "fiscal_period" if name == "fiscal_period_name" else name
+
+
+def _plan_writeback(
+    sheet: dict[str, Any],
+    *,
+    workspace_id: str,
+    plan_database_id: str,
+    plan_sql_connection_id: str,
+) -> dict[str, Any]:
+    wb_columns: list[dict[str, Any]] = []
+    for dimension in sheet["dimensions"]:
+        is_time = dimension["table"] == "Fiscal Period"
+        column = {
+            "id": f"{dimension['table']}[{dimension['column']}]",
+            "name": _writeback_column_name(dimension),
+            "dataType": (
+                "NUMERIC"
+                if dimension["dataType"] in {"Int64", "Double"}
+                else "TEXT"
+            ),
+            "isColumnDimension": dimension["bucket"] == "columns",
+            "isTimeDimension": is_time,
+            "source": "Native",
+        }
+        if is_time:
+            column["timeIntervalUnit"] = (
+                "YEAR" if dimension["column"] == "Fiscal Year" else "MONTH"
+            )
+        wb_columns.append(column)
+    mappings: dict[str, dict[str, str]] = {}
+    for item in sheet["inputs"]:
+        mappings[item["guid"]] = {
+            "visualName": item["name"],
+            "wbColumnName": item["column"],
+        }
+        wb_columns.append(
+            {
+                "measureGuid": item["guid"],
+                "name": item["column"],
+                "dataType": (
+                    "NUMERIC" if item["kind"] == "Number" else "TEXT"
+                ),
+                "isColumnDimension": False,
+                "isTimeDimension": False,
+                "source": "Visual Measure",
+            }
+        )
+    settings = {
+        "database": {
+            "workspaceId": workspace_id,
+            "itemId": plan_database_id,
+        },
+        "dbSchema": "plan",
+        "dbDisplayName": "SAP_FIN_PLAN_DB",
+    }
+    settings_hash = hashlib.sha256(
+        json.dumps(
+            settings,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+    ).hexdigest()
+    return {
+        "$schema": (
+            "https://developer.microsoft.com/json-schemas/fabric/item/plan/"
+            "definition/Planning/Writeback/1.0.0/schema.json"
+        ),
+        "writebackType": 2,
+        "destinations": [
+            {
+                "tableName": sheet["writebackTable"],
+                "connectionId": plan_sql_connection_id,
+                "settings": settings,
+                "settingsHash": settings_hash,
+                "visualId": sheet["visualId"],
+            }
+        ],
+        "writebackFilter": {"type": "none"},
+        "excludedMeasureGuids": [],
+        "isAutoWritebackEnabled": 0,
+        "autoWbEnabledScenarioIds": [],
+        "debounce": {"duration": 3, "isDebounceEnabled": 1},
+        "isSnapshotWbEnabled": 0,
+        "wbTableColumnMapping": mappings,
+        "numberPrecision": {"decimal": 2},
+        "stringColumnLength": {"type": 1, "length": "1000"},
+        "writebackAsHTML": False,
+        "writebackConstraints": {},
+        "wbColumns": wb_columns,
+        "hasWritebackAccess": True,
+        "skippedDimensionIds": [],
+    }
+
+
+def plan_definition(
+    root: Path,
+    *,
+    workspace_id: str,
+    workspace_name: str,
+    semantic_model_id: str,
+    semantic_model_connection_id: str,
+    plan_database_id: str,
+    plan_sql_connection_id: str,
+) -> dict[str, Any]:
+    """Create a rebound Fabric Plan definition."""
+    replacements = {
+        "__WORKSPACE_ID__": workspace_id,
+        "__WORKSPACE_NAME__": workspace_name,
+        "__SEMANTIC_MODEL_ID__": semantic_model_id,
+        "__SEMANTIC_MODEL_CONNECTION_ID__": semantic_model_connection_id,
+    }
+    definition_parts: list[dict[str, str]] = []
+    for path in sorted(file for file in root.rglob("*") if file.is_file()):
+        relative = path.relative_to(root).as_posix()
+        content = path.read_text(encoding="utf-8")
+        for old, new in replacements.items():
+            content = content.replace(old, new)
+        definition_parts.append(part(relative, content))
+    plan_spec = json.loads(
+        (root.parent / "finance-plan-spec.json").read_text(encoding="utf-8")
+    )
+    for sheet in plan_spec["sheets"]:
+        sheet_root = f"sheets/{sheet['sheetId']}"
+        visual_root = f"{sheet_root}/visuals/{sheet['visualId']}"
+        definition_parts.extend(
+            [
+                part(f"{sheet_root}/sheet.json", json_text(_plan_sheet(sheet))),
+                part(
+                    f"{sheet_root}/commentSettings.json",
+                    json_text(_plan_comment_settings(sheet)),
+                ),
+                part(
+                    f"{visual_root}/dataInput.json",
+                    json_text(_plan_data_input(sheet)),
+                ),
+                part(
+                    f"{visual_root}/properties.json",
+                    json_text(_plan_visual_properties(sheet)),
+                ),
+            ]
+        )
+        if sheet.get("writebackTable"):
+            definition_parts.append(
+                part(
+                    f"{visual_root}/writeback.json",
+                    json_text(
+                        _plan_writeback(
+                            sheet,
+                            workspace_id=workspace_id,
+                            plan_database_id=plan_database_id,
+                            plan_sql_connection_id=plan_sql_connection_id,
+                        )
+                    ),
+                )
+            )
+    return {"parts": definition_parts}
 
 
 def pipeline_definition(
@@ -321,6 +818,36 @@ def sql_database_definition(artifacts_root: Path) -> dict[str, Any]:
         + "\n\n"
         + "\n\n".join(seed_blocks)
         + "\n"
+    )
+    return {
+        "format": "sqlproj",
+        "parts": [
+            part("sqldb.sqlproj", project),
+            part("Scripts/Deploy.sql", deploy_sql),
+        ],
+    }
+
+
+def planner_database_definition(artifacts_root: Path) -> dict[str, Any]:
+    """Build the governed SAP Finance planning SQL database definition."""
+    schema_sql = (
+        artifacts_root / "planner" / "database" / "schema.sql"
+    ).read_text(encoding="utf-8")
+    project = """<Project Sdk="Microsoft.Build.Sql/1.0.0">
+  <PropertyGroup>
+    <Name>SAP_FIN_PLAN_DB</Name>
+    <DSP>Microsoft.Data.Tools.Schema.Sql.SqlDbFabricDatabaseSchemaProvider</DSP>
+    <ModelCollation>1033, CS</ModelCollation>
+    <DefaultCollation>Latin1_General_100_BIN2_UTF8</DefaultCollation>
+  </PropertyGroup>
+  <ItemGroup>
+    <Build Remove="Scripts\\Deploy.sql" />
+    <PostDeploy Include="Scripts\\Deploy.sql" />
+  </ItemGroup>
+</Project>
+"""
+    deploy_sql = (
+        "-- Generated by fabric-sap-hana-deployer.\n" + schema_sql + "\n"
     )
     return {
         "format": "sqlproj",

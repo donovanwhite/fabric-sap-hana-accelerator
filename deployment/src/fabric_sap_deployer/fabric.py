@@ -330,6 +330,7 @@ class FabricClient:
             "reports": "Report",
             "dataAgents": "DataAgent",
             "dataPipelines": "DataPipeline",
+            "plans": "Plan",
         }[route]
         for _ in range(12):
             item = self.find_item(workspace_id, display_name, item_type)

@@ -15,7 +15,9 @@ from .definitions import (
     data_agent_definition,
     directory_definition,
     notebook_definition,
+    plan_definition,
     pipeline_definition,
+    planner_database_definition,
     sql_database_definition,
     validate_deployable_definition,
 )
@@ -24,6 +26,7 @@ from .fabric import FabricApiError, FabricClient, FabricItem
 LOGGER = logging.getLogger(__name__)
 
 SQL_CONNECTION_NAME = "conn_sap_finance_sql"
+SEMANTIC_MODEL_CONNECTION_NAME = "conn_sap_finance_planning_dataset"
 
 NOTEBOOK_NAMES = [
     "00_Setup_and_Namespace_Validation",
@@ -43,6 +46,7 @@ FOLDER_BY_TYPE = {
     "Lakehouse": "lakehouses",
     "Notebook": "notebooks",
     "DataPipeline": "pipelines",
+    "Plan": "planner",
     "Report": "reports",
     "SemanticModel": "semantic models",
 }
@@ -54,6 +58,7 @@ class DeploymentOptions:
 
     workspace: str
     sql_connection: str = SQL_CONNECTION_NAME
+    semantic_model_connection: str = SEMANTIC_MODEL_CONNECTION_NAME
     overwrite: bool = False
     dry_run: bool = False
 
@@ -111,6 +116,15 @@ class AcceleratorDeployer:
             sql_connection["displayName"],
             sql_connection["id"],
         )
+        semantic_model_connection = self.client.resolve_oauth2_connection(
+            self.options.semantic_model_connection, "PowerBIDatasets"
+        )
+        self.client.validate_connection_online(semantic_model_connection)
+        LOGGER.info(
+            "Validated semantic model OAuth2 connection: %s (%s)",
+            semantic_model_connection["displayName"],
+            semantic_model_connection["id"],
+        )
         self._check_conflicts(workspace_id)
         if self.options.dry_run:
             self._print_plan()
@@ -134,6 +148,18 @@ class AcceleratorDeployer:
             display_name="SAP_FIN_DB",
             description="Synthetic SAP Finance source-system simulator",
             definition=sql_database_definition(self.artifacts_root),
+            creation_payload={
+                "collation": "Latin1_General_100_BIN2_UTF8",
+                "creationMode": "new",
+            },
+        )
+        planning_database = self._ensure_definition_item(
+            workspace_id,
+            route="sqlDatabases",
+            item_type="SQLDatabase",
+            display_name="SAP_FIN_PLAN_DB",
+            description="Governed SAP Finance planning and writeback database",
+            definition=planner_database_definition(self.artifacts_root),
             creation_payload={
                 "collation": "Latin1_General_100_BIN2_UTF8",
                 "creationMode": "new",
@@ -211,6 +237,26 @@ class AcceleratorDeployer:
         )
         self._ensure_definition_item(
             workspace_id,
+            route="plans",
+            item_type="Plan",
+            display_name="SAP Finance Planning Enterprise",
+            description=(
+                "Budget, forecast, and scenario planning over SAP Finance Gold"
+            ),
+            definition=plan_definition(
+                self.artifacts_root
+                / "planner"
+                / "SAP Finance Planning.Plan",
+                workspace_id=workspace_id,
+                workspace_name=self.workspace["displayName"],
+                semantic_model_id=semantic_model.id,
+                semantic_model_connection_id=semantic_model_connection["id"],
+                plan_database_id=planning_database.id,
+                plan_sql_connection_id=sql_connection["id"],
+            ),
+        )
+        self._ensure_definition_item(
+            workspace_id,
             route="dataAgents",
             item_type="DataAgent",
             display_name="Finance Agent",
@@ -249,6 +295,15 @@ class AcceleratorDeployer:
             self.artifacts_root / "semantic" / "SAP Finance.SemanticModel",
             self.artifacts_root / "semantic" / "SAP Finance Executive Insights.Report",
             self.artifacts_root / "dataAgent" / "dataAgent.md",
+            self.artifacts_root / "planner" / "database" / "schema.sql",
+            self.artifacts_root
+            / "planner"
+            / "SAP Finance Planning.Plan"
+            / "definition.json",
+            self.artifacts_root
+            / "planner"
+            / "SAP Finance Planning.Plan"
+            / "planProperties.json",
         ]
         required.extend(
             self.artifacts_root / "medallion" / f"{name}.ipynb"
@@ -265,9 +320,11 @@ class AcceleratorDeployer:
             ("lh_brz_slv_finance", "Lakehouse"): "Lakehouse",
             ("lh_gld_finance", "Lakehouse"): "Lakehouse",
             ("SAP_FIN_DB", "SQLDatabase"): "SQL Database",
+            ("SAP_FIN_PLAN_DB", "SQLDatabase"): "planning SQL Database",
             ("SAP Finance", "SemanticModel"): "semantic model",
             ("SAP Finance Executive Insights", "Report"): "report",
             ("Finance Agent", "DataAgent"): "Data Agent",
+            ("SAP Finance Planning Enterprise", "Plan"): "Plan",
             (
                 "pl_full_medallion_sap_finance",
                 "DataPipeline",
@@ -321,11 +378,13 @@ class AcceleratorDeployer:
         LOGGER.info("Dry-run deployment order:")
         LOGGER.info("  1. Workload folders: %s", ", ".join(FOLDER_BY_TYPE.values()))
         LOGGER.info("  2. Lakehouses: lh_brz_slv_finance, lh_gld_finance")
-        LOGGER.info("  3. SQL Database: SAP_FIN_DB with synthetic seed data")
+        LOGGER.info(
+            "  3. SQL Databases: SAP_FIN_DB and SAP_FIN_PLAN_DB"
+        )
         LOGGER.info("  4. Notebooks: %d", len(NOTEBOOK_NAMES))
         LOGGER.info("  5. Semantic model and report")
         LOGGER.info("  6. Finance Data Agent")
-        LOGGER.info("  7. Rebound Data Pipeline")
+        LOGGER.info("  7. Rebound Data Pipeline and SAP Finance Plan")
 
     def _ensure_lakehouse(
         self, workspace_id: str, display_name: str, description: str

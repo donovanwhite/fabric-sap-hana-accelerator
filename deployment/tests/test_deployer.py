@@ -9,6 +9,8 @@ from typing import cast
 from fabric_sap_deployer.deployer import (
     AcceleratorDeployer,
     DeploymentOptions,
+    SEMANTIC_MODEL_CONNECTION_NAME,
+    SQL_CONNECTION_NAME,
 )
 from fabric_sap_deployer.fabric import FabricApiError, FabricClient, FabricItem
 
@@ -86,6 +88,11 @@ class DeploymentCollisionTests(unittest.TestCase):
 
         with self.assertRaisesRegex(FabricApiError, "Multiple SemanticModel"):
             deployer._check_conflicts("workspace")
+
+    def test_connection_defaults_follow_naming_standard(self) -> None:
+        for name in [SQL_CONNECTION_NAME, SEMANTIC_MODEL_CONNECTION_NAME]:
+            self.assertTrue(name.startswith("conn_"), name)
+            self.assertEqual(name, name.lower())
 
 
 if __name__ == "__main__":

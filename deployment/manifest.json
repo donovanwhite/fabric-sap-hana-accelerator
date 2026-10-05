@@ -7,6 +7,7 @@
       "lh_gld_finance"
     ],
     "sqlDatabase": "SAP_FIN_DB",
+    "planningDatabase": "SAP_FIN_PLAN_DB",
     "notebooks": [
       "00_Setup_and_Namespace_Validation",
       "01_Bronze_CSV_Inventory",
@@ -21,6 +22,7 @@
     "semanticModel": "SAP Finance",
     "report": "SAP Finance Executive Insights",
     "dataAgent": "Finance Agent",
+    "plan": "SAP Finance Planning Enterprise",
     "pipeline": "pl_full_medallion_sap_finance"
   }
 }

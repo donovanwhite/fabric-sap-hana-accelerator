@@ -2,6 +2,7 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$Workspace,
     [string]$SqlConnection = "conn_sap_finance_sql",
+    [string]$SemanticModelConnection = "conn_sap_finance_planning_dataset",
     [switch]$Overwrite,
     [switch]$DryRun
 )
@@ -13,7 +14,9 @@ $arguments = @(
     "--workspace",
     $Workspace,
     "--sql-connection",
-    $SqlConnection
+    $SqlConnection,
+    "--semantic-model-connection",
+    $SemanticModelConnection
 )
 
 if ($Overwrite) {

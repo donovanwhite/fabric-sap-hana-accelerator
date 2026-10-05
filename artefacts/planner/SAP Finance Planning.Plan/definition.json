@@ -1,0 +1,93 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/plan/definition/Definition/1.0.0/schema.json",
+  "workloadItemName": "SAP Finance Planning Enterprise",
+  "semanticModelReference": {
+    "connection": {
+      "connectionId": "__SEMANTIC_MODEL_CONNECTION_ID__"
+    },
+    "semanticModel": {
+      "workspaceId": "__WORKSPACE_ID__",
+      "itemId": "__SEMANTIC_MODEL_ID__"
+    },
+    "connectionId": "__SEMANTIC_MODEL_CONNECTION_ID__",
+    "semanticModelId": "__SEMANTIC_MODEL_ID__",
+    "semanticModelName": "SAP Finance",
+    "semanticModelWorkspaceId": "__WORKSPACE_ID__",
+    "semanticModelWorkspaceName": "__WORKSPACE_NAME__",
+    "directLakeMode": true,
+    "directQueryMode": false,
+    "sourceType": "WORKLOAD"
+  },
+  "sheets": [
+    {
+      "recordGuid": "8dcecfce-d29a-5de8-b1cd-29df3cf077ec",
+      "displayName": "Budget Input",
+      "sheetType": "PLANNING",
+      "isHidden": false,
+      "order": 1,
+      "workloadItemEntityVisuals": [
+        {
+          "visualType": "PLANNING",
+          "visualId": "330d95e6-b32b-5f7c-ab1e-e00a68579c89",
+          "isEmbedded": false
+        }
+      ]
+    },
+    {
+      "recordGuid": "8398206f-8c4a-5bd4-af2b-dc0f3af52243",
+      "displayName": "Executive Plan Summary",
+      "sheetType": "PLANNING",
+      "isHidden": false,
+      "order": 0,
+      "workloadItemEntityVisuals": [
+        {
+          "visualType": "PLANNING",
+          "visualId": "5565b643-ac1b-5537-b5cd-0a2ee50fa12a",
+          "isEmbedded": false
+        }
+      ]
+    },
+    {
+      "recordGuid": "cdeeb4c8-804d-5f69-8708-f5d9dfc403cc",
+      "displayName": "Rolling Forecast",
+      "sheetType": "PLANNING",
+      "isHidden": false,
+      "order": 2,
+      "workloadItemEntityVisuals": [
+        {
+          "visualType": "PLANNING",
+          "visualId": "6af603f4-f5f8-57f0-82cf-e2ccde78d537",
+          "isEmbedded": false
+        }
+      ]
+    },
+    {
+      "recordGuid": "3140fd7c-edc8-5cc3-af3a-55b545e83c99",
+      "displayName": "Scenario Assumptions",
+      "sheetType": "PLANNING",
+      "isHidden": false,
+      "order": 3,
+      "workloadItemEntityVisuals": [
+        {
+          "visualType": "PLANNING",
+          "visualId": "abbfd3f0-21ac-5b90-a484-ba71029053d0",
+          "isEmbedded": false
+        }
+      ]
+    },
+    {
+      "recordGuid": "cc19ccfa-9021-53d2-90b9-75187075968b",
+      "displayName": "Actual vs Plan Review",
+      "sheetType": "PLANNING",
+      "isHidden": false,
+      "order": 4,
+      "workloadItemEntityVisuals": [
+        {
+          "visualType": "PLANNING",
+          "visualId": "1032ee3c-3694-54e8-bfc4-336861a26acc",
+          "isEmbedded": false
+        }
+      ]
+    }
+  ]
+}
