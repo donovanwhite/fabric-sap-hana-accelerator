@@ -88,6 +88,7 @@ deployment:
 .\deployment\deploy.ps1 `
   -Workspace "<workspace-id>" `
   -SqlConnection "<fabric-sql-source-connection>" `
+  -PlanningSqlConnection "<planning-sql-connection>" `
   -SemanticModelConnection "<semantic-model-connection>" `
   -DryRun
 ```
@@ -105,16 +106,18 @@ deployment:
 
 ## Connection binding
 
-The installer binds `conn_sap_finance_sql` to the Plan application database
-for viewer collaboration and to all three governed writeback destinations.
-The connection must already exist and have valid OAuth2 credentials because
-Fabric does not expose interactive user consent through the deployment API.
+The installer binds `conn_sap_finance_planning_sql` to the Plan application
+database for viewer collaboration and to all three governed writeback
+destinations. `conn_sap_finance_sql` remains dedicated to `SAP_FIN_DB` source
+ingestion. The planning connection must already exist and have valid OAuth2
+credentials because Fabric does not expose interactive user consent through
+the deployment API.
 
 After deployment:
 
 1. Open `SAP Finance Planning Enterprise`.
 2. Verify that the viewer-collaboration connection is
-   `conn_sap_finance_sql`.
+   `conn_sap_finance_planning_sql`.
 3. Verify that all five generated Planning visuals can query the semantic
    model.
 4. Confirm finance users have Read and Build access to the semantic model and

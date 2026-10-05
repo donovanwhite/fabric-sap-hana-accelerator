@@ -9,6 +9,7 @@ from typing import cast
 from fabric_sap_deployer.deployer import (
     AcceleratorDeployer,
     DeploymentOptions,
+    PLANNING_SQL_CONNECTION_NAME,
     SEMANTIC_MODEL_CONNECTION_NAME,
     SQL_CONNECTION_NAME,
 )
@@ -90,9 +91,14 @@ class DeploymentCollisionTests(unittest.TestCase):
             deployer._check_conflicts("workspace")
 
     def test_connection_defaults_follow_naming_standard(self) -> None:
-        for name in [SQL_CONNECTION_NAME, SEMANTIC_MODEL_CONNECTION_NAME]:
+        for name in [
+            SQL_CONNECTION_NAME,
+            PLANNING_SQL_CONNECTION_NAME,
+            SEMANTIC_MODEL_CONNECTION_NAME,
+        ]:
             self.assertTrue(name.startswith("conn_"), name)
             self.assertEqual(name, name.lower())
+        self.assertNotEqual(SQL_CONNECTION_NAME, PLANNING_SQL_CONNECTION_NAME)
 
 
 if __name__ == "__main__":

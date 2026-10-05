@@ -26,6 +26,7 @@ from .fabric import FabricApiError, FabricClient, FabricItem
 LOGGER = logging.getLogger(__name__)
 
 SQL_CONNECTION_NAME = "conn_sap_finance_sql"
+PLANNING_SQL_CONNECTION_NAME = "conn_sap_finance_planning_sql"
 SEMANTIC_MODEL_CONNECTION_NAME = "conn_sap_finance_planning_dataset"
 
 NOTEBOOK_NAMES = [
@@ -58,6 +59,7 @@ class DeploymentOptions:
 
     workspace: str
     sql_connection: str = SQL_CONNECTION_NAME
+    planning_sql_connection: str = PLANNING_SQL_CONNECTION_NAME
     semantic_model_connection: str = SEMANTIC_MODEL_CONNECTION_NAME
     overwrite: bool = False
     dry_run: bool = False
@@ -112,9 +114,18 @@ class AcceleratorDeployer:
         )
         self.client.validate_connection_online(sql_connection)
         LOGGER.info(
-            "Validated OAuth2 connection: %s (%s)",
+            "Validated source SQL OAuth2 connection: %s (%s)",
             sql_connection["displayName"],
             sql_connection["id"],
+        )
+        planning_sql_connection = self.client.resolve_oauth2_connection(
+            self.options.planning_sql_connection, "FabricSql"
+        )
+        self.client.validate_connection_online(planning_sql_connection)
+        LOGGER.info(
+            "Validated planning SQL OAuth2 connection: %s (%s)",
+            planning_sql_connection["displayName"],
+            planning_sql_connection["id"],
         )
         semantic_model_connection = self.client.resolve_oauth2_connection(
             self.options.semantic_model_connection, "PowerBIDatasets"
@@ -252,7 +263,7 @@ class AcceleratorDeployer:
                 semantic_model_id=semantic_model.id,
                 semantic_model_connection_id=semantic_model_connection["id"],
                 plan_database_id=planning_database.id,
-                plan_sql_connection_id=sql_connection["id"],
+                plan_sql_connection_id=planning_sql_connection["id"],
             ),
         )
         self._ensure_definition_item(

@@ -19,11 +19,13 @@ The only Fabric prerequisites are:
 * An existing Microsoft Fabric tenant
 * An existing workspace on active Fabric capacity
 * Contributor or higher access to that workspace
-* An authorized Shareable Cloud `FabricSql` connection using OAuth2
+* An authorized Shareable Cloud `FabricSql` source connection using OAuth2
+* A separate Shareable Cloud `FabricSql` planning connection using OAuth2
 * An authorized Shareable Cloud `PowerBIDatasets` connection using OAuth2
 
 All accelerator-owned connections use lowercase names prefixed with `conn_`.
-The defaults are `conn_sap_finance_sql` and
+The defaults are `conn_sap_finance_sql`,
+`conn_sap_finance_planning_sql`, and
 `conn_sap_finance_planning_dataset`.
 
 The local machine requires Python 3.11–3.13 and an authenticated Azure CLI.
@@ -44,6 +46,7 @@ different name, or has duplicate display names, pass the connection ID:
 .\deployment\deploy.ps1 `
   -Workspace "<workspace-id>" `
   -SqlConnection "<connection-name-or-id>" `
+  -PlanningSqlConnection "<planning-connection-name-or-id>" `
   -SemanticModelConnection "<connection-name-or-id>"
 ```
 
@@ -65,7 +68,7 @@ It performs the same checks for the `PowerBIDatasets` connection used by the
 Plan item. An offline, expired, ambiguous, missing, or incorrectly typed
 connection stops the deployment before any workspace item is created.
 
-## Create the SQL connection
+## Create the SQL connections
 
 OAuth2 authorization requires an interactive user consent flow, so the
 installer does not create or silently replace the connection.
@@ -75,8 +78,11 @@ installer does not create or silently replace the connection.
 2. Create a new **Cloud** connection of type **Fabric SQL database**.
 3. Name it `conn_sap_finance_sql`, or record its connection ID for
    `-SqlConnection`.
-4. Select **OAuth 2.0**, sign in, and save the connection.
-5. Run the installer with `-DryRun` before deployment.
+4. Create a second OAuth2 Fabric SQL connection through the Plan connection
+   wizard and name it `conn_sap_finance_planning_sql`, or record its
+   connection ID for `-PlanningSqlConnection`.
+5. Select **OAuth 2.0**, sign in, and save both connections.
+6. Run the installer with `-DryRun` before deployment.
 
 If a refresh token expires, dry-run reports the connection as offline and
 provides the Fabric error before deployment. Reauthorize the credentials in
@@ -132,11 +138,11 @@ Lakehouse SQL endpoint and database name and substitutes them into the TMDL
 expression before deployment.
 
 The Plan item uses the `SAP Finance` semantic model for governed actuals. Fabric
-creates its internal application database automatically. The installer binds
-`conn_sap_finance_sql` to that application database for viewer collaboration
-and to the generated writeback destinations. The separate `SAP_FIN_PLAN_DB`
-stores governed scenarios, assumptions, and writeback data. Validation steps
-are documented in
+creates its internal application database automatically. The installer binds `conn_sap_finance_planning_sql` to the application
+database for viewer collaboration and to the generated writeback
+destinations. `conn_sap_finance_sql` remains isolated to source ingestion.
+The separate `SAP_FIN_PLAN_DB` stores governed scenarios, assumptions, and
+writeback data. Validation steps are documented in
 [`artefacts/planner/README.md`](../artefacts/planner/README.md).
 
 The installer is idempotent with `-Overwrite`. Generated definitions are

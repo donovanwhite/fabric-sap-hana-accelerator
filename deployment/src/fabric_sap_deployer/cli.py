@@ -40,6 +40,15 @@ def create_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--planning-sql-connection",
+        default="conn_sap_finance_planning_sql",
+        help=(
+            "Authorized ShareableCloud FabricSql OAuth2 connection for the "
+            "Plan application database and writeback, by name or ID "
+            "(default: conn_sap_finance_planning_sql)"
+        ),
+    )
+    parser.add_argument(
         "--semantic-model-connection",
         default="conn_sap_finance_planning_dataset",
         help=(
@@ -88,6 +97,7 @@ def main() -> int:
             DeploymentOptions(
                 workspace=args.workspace,
                 sql_connection=args.sql_connection,
+                planning_sql_connection=args.planning_sql_connection,
                 semantic_model_connection=args.semantic_model_connection,
                 overwrite=args.overwrite,
                 dry_run=args.dry_run,
