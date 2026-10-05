@@ -234,6 +234,8 @@ class DefinitionTests(unittest.TestCase):
         self.assertEqual(theme["positiveColor"], "#107C10")
         self.assertEqual(theme["negativeColor"], "#D13438")
         self.assertEqual(theme["valueColor"], "#243447")
+        self.assertTrue(theme["enableVarianceColor"])
+        self.assertFalse(theme["invertVarianceColor"])
         self.assertTrue(
             budget_properties["visualStyles"]["background"]["isEnabled"]
         )

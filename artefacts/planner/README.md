@@ -71,6 +71,21 @@ Timestamps are UTC.
 The detailed contract is in
 [`writeback-contract.json`](./writeback-contract.json).
 
+## Conditional formatting
+
+Every generated Planning visual enables sign-based variance formatting:
+
+* Positive variances use finance green (`#107C10`)
+* Negative variances use finance red (`#D13438`)
+* Neutral values retain the standard value color (`#243447`)
+
+This rule is part of the portable visual definition and applies consistently
+after deployment. Before adding account-specific threshold rules, confirm the
+measure direction. A positive cost variance can be unfavorable while a
+positive revenue variance is normally favorable. Add those rules through the
+Plan **Format** ribbon only after the business meaning is explicit, and verify
+that **Hide value** is disabled so the rule cannot suppress finance values.
+
 ## Deployment
 
 The installer creates:
