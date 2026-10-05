@@ -248,7 +248,7 @@ class DefinitionTests(unittest.TestCase):
             ).decode("utf-8")
         )["properties"]
         theme = budget_properties["visualState"]["themeColors"]
-        self.assertEqual(theme["rowOddColor"], "#EAF2F8")
+        self.assertEqual(theme["rowOddColor"], "#DCEAF4")
         self.assertEqual(theme["positiveColor"], "#107C10")
         self.assertEqual(theme["negativeColor"], "#D13438")
         self.assertEqual(theme["valueColor"], "#243447")
@@ -256,6 +256,9 @@ class DefinitionTests(unittest.TestCase):
         self.assertFalse(theme["invertVarianceColor"])
         self.assertTrue(
             budget_properties["visualStyles"]["background"]["isEnabled"]
+        )
+        self.assertTrue(
+            budget_properties["visualStyles"]["shadow"]["isEnabled"]
         )
         budget_title = budget_properties["visualState"]["chartCustomTitle"][
             "customTitle"

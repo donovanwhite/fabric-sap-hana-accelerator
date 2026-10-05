@@ -330,11 +330,11 @@ def _plan_visual_properties(sheet: dict[str, Any]) -> dict[str, Any]:
         bucket_order["ameasure"] += 1
     visual_styles = {
         "background": {
-            "backgroundColor": "#F7F9FC",
+            "backgroundColor": "#F3F8FC",
             "isEnabled": True,
         },
         "border": {
-            "color": "#A9C4D6",
+            "color": "#6F9DBA",
             "isEnabled": True,
             "side": "all",
             "width": 1,
@@ -359,11 +359,11 @@ def _plan_visual_properties(sheet: dict[str, Any]) -> dict[str, Any]:
         "rotation": {"isEnabled": False, "transform": 0},
         "shadow": {
             "angle": 135,
-            "blur": 8,
-            "color": "#0000003f",
-            "distance": 10,
-            "isEnabled": False,
-            "opacity": 100,
+            "blur": 6,
+            "color": "#103C5A33",
+            "distance": 3,
+            "isEnabled": True,
+            "opacity": 45,
             "placement": "outer",
             "side": "bottom",
             "width": 0,
@@ -397,9 +397,9 @@ def _plan_visual_properties(sheet: dict[str, Any]) -> dict[str, Any]:
         "positiveColor": "#107C10",
         "previousThemeType": "trafficlights",
         "rowEvenColor": "#FFFFFF",
-        "rowHoverColor": "#DDEBF7",
+        "rowHoverColor": "#C7E0F4",
         "rowHoverTextColor": "#103C5A",
-        "rowOddColor": "#EAF2F8",
+        "rowOddColor": "#DCEAF4",
         "tableThemeType": False,
         "themeType": "trafficlights",
         "valueColor": "#243447",
