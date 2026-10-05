@@ -27,12 +27,8 @@
       "name": "Budget Input",
       "dimensions": [
         {"table": "Company", "column": "Company Code", "dataType": "String", "bucket": "rows"},
-        {"table": "Division", "column": "Division Code", "dataType": "String", "bucket": "rows"},
-        {"table": "Profit Center", "column": "Profit Center Code", "dataType": "String", "bucket": "rows"},
         {"table": "Cost Center", "column": "Cost Center Code", "dataType": "String", "bucket": "rows"},
         {"table": "GL Account", "column": "GL Account Code", "dataType": "String", "bucket": "rows"},
-        {"table": "Plan vs Actual Monthly", "column": "Scenario", "dataType": "String", "bucket": "rows"},
-        {"table": "Plan vs Actual Monthly", "column": "Plan Version", "dataType": "String", "bucket": "rows"},
         {"table": "Fiscal Period", "column": "Fiscal Year", "dataType": "Int64", "bucket": "columns", "hierarchy": "Fiscal Period Hierarchy"},
         {"table": "Fiscal Period", "column": "Fiscal Period Name", "dataType": "String", "bucket": "columns", "hierarchy": "Fiscal Period Hierarchy"}
       ],
@@ -54,11 +50,8 @@
       "name": "Rolling Forecast",
       "dimensions": [
         {"table": "Company", "column": "Company Code", "dataType": "String", "bucket": "rows"},
-        {"table": "Division", "column": "Division Code", "dataType": "String", "bucket": "rows"},
         {"table": "Profit Center", "column": "Profit Center Code", "dataType": "String", "bucket": "rows"},
-        {"table": "Cost Center", "column": "Cost Center Code", "dataType": "String", "bucket": "rows"},
         {"table": "GL Account", "column": "GL Account Code", "dataType": "String", "bucket": "rows"},
-        {"table": "Plan vs Actual Monthly", "column": "Plan Version", "dataType": "String", "bucket": "rows"},
         {"table": "Fiscal Period", "column": "Fiscal Year", "dataType": "Int64", "bucket": "columns", "hierarchy": "Fiscal Period Hierarchy"},
         {"table": "Fiscal Period", "column": "Fiscal Period Name", "dataType": "String", "bucket": "columns", "hierarchy": "Fiscal Period Hierarchy"}
       ],
@@ -99,8 +92,6 @@
       "dimensions": [
         {"table": "Company", "column": "Company Code", "dataType": "String", "bucket": "rows"},
         {"table": "Division", "column": "Division Code", "dataType": "String", "bucket": "rows"},
-        {"table": "Profit Center", "column": "Profit Center Code", "dataType": "String", "bucket": "rows"},
-        {"table": "Cost Center", "column": "Cost Center Code", "dataType": "String", "bucket": "rows"},
         {"table": "GL Account", "column": "GL Account Code", "dataType": "String", "bucket": "rows"},
         {"table": "Fiscal Period", "column": "Fiscal Year", "dataType": "Int64", "bucket": "columns", "hierarchy": "Fiscal Period Hierarchy"},
         {"table": "Fiscal Period", "column": "Fiscal Period Name", "dataType": "String", "bucket": "columns", "hierarchy": "Fiscal Period Hierarchy"}

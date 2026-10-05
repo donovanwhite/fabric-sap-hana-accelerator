@@ -2,7 +2,7 @@
 title: SAP Finance Planning
 description: Fabric Planning design over the SAP Finance Gold semantic model
 author: Data and AI Engineering
-ms.date: 2026-10-03
+ms.date: 2026-10-05
 ms.topic: reference
 keywords:
   - Microsoft Fabric
@@ -29,8 +29,9 @@ write to it directly.
 * `plan.scenario` owns scenario and version lifecycle.
 * `plan.assumption` stores controlled planning drivers.
 * `audit.planning_release` records promoted writeback batches.
-* Fabric Planning creates and manages `plan.finance_plan_writeback` when the
-  writeback destination is configured.
+* Fabric Planning creates and manages `plan.finance_budget_writeback`,
+  `plan.finance_forecast_writeback`, and
+  `plan.finance_assumption_writeback`.
 
 ## Finance planning workspace
 
@@ -102,21 +103,23 @@ deployment:
 > `conn_sap_finance_planning_dataset`. All solution-owned connection names are
 > lowercase and start with `conn_`.
 
-## One-time writeback binding
+## Connection binding
 
-OAuth2 authorization for a newly created database requires an interactive
-tenant sign-in. Complete these steps after the first deployment:
+The installer binds `conn_sap_finance_sql` to the Plan application database
+for viewer collaboration and to all three governed writeback destinations.
+The connection must already exist and have valid OAuth2 credentials because
+Fabric does not expose interactive user consent through the deployment API.
 
-1. Open **Settings** and select **Manage connections and gateways**.
-2. Create a Shareable Cloud Fabric SQL database connection to
-   `SAP_FIN_PLAN_DB`.
-3. Use an organizational account and share the connection with plan editors.
-4. Open `SAP Finance Planning Enterprise`.
-5. Verify that all five generated Planning visuals can query the semantic
+After deployment:
+
+1. Open `SAP Finance Planning Enterprise`.
+2. Verify that the viewer-collaboration connection is
+   `conn_sap_finance_sql`.
+3. Verify that all five generated Planning visuals can query the semantic
    model.
-6. Confirm finance users have Read and Build access to the semantic model and
+4. Confirm finance users have Read and Build access to the semantic model and
    connection access for their assigned workflow.
-7. Test one controlled writeback in each editable sheet and inspect the
+5. Test one controlled writeback in each editable sheet and inspect the
    generated destination table.
 
 The generated Plan definition includes all visual and writeback metadata.

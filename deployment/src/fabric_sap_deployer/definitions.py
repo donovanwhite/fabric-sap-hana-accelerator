@@ -46,6 +46,7 @@ UNRESOLVED_DEPLOYMENT_TOKENS = frozenset(
         "__NOTEBOOK_ID__",
         "__SEMANTIC_MODEL_ID__",
         "__SEMANTIC_MODEL_CONNECTION_ID__",
+        "__SEMANTIC_MODEL_URL__",
         "__PLAN_DATABASE_ID__",
         "__PLAN_SQL_CONNECTION_ID__",
         "__WRITEBACK_SETTINGS_HASH__",
@@ -333,8 +334,10 @@ def _plan_data_input(sheet: dict[str, Any]) -> dict[str, Any]:
                 "name": item["name"],
                 "description": item["description"],
                 "dataInputType": data_input_type,
-                "disableWriteAccess": False,
-                "boundToFilterContext": True,
+                "boundToFilterContext": 1,
+                "sidecarHydrationLeaseAt": None,
+                "sidecarHydrationStatus": 10,
+                "status": 10,
             }
         )
     return {
@@ -366,6 +369,7 @@ def _plan_visual_properties(sheet: dict[str, Any]) -> dict[str, Any]:
             "sourceType": "PowerBI",
             "tableName": dimension["table"],
             "dataRoleType": "Grouping",
+            "name": dimension["column"],
         }
         if dimension.get("hierarchy"):
             assignment["hierarchyName"] = dimension["hierarchy"]
@@ -385,24 +389,7 @@ def _plan_visual_properties(sheet: dict[str, Any]) -> dict[str, Any]:
                 "sourceType": "PowerBI",
                 "tableName": measure["table"],
                 "dataRoleType": "Measure",
-            }
-        )
-        bucket_order["ameasure"] += 1
-    for item in sheet["inputs"]:
-        assignments.append(
-            {
-                "id": item["guid"],
-                "sourceId": sheet["visualId"],
-                "bucketId": "ameasure",
-                "columnName": item["name"],
-                "dataType": (
-                    "Double" if item["kind"] == "Number" else "String"
-                ),
-                "order": bucket_order["ameasure"],
-                "columnType": "Measure",
-                "name": item["name"],
-                "dataRoleType": "Measure",
-                "measureGuid": item["guid"],
+                "name": measure["name"],
             }
         )
         bucket_order["ameasure"] += 1
@@ -617,6 +604,10 @@ def plan_definition(
         "__WORKSPACE_NAME__": workspace_name,
         "__SEMANTIC_MODEL_ID__": semantic_model_id,
         "__SEMANTIC_MODEL_CONNECTION_ID__": semantic_model_connection_id,
+        "__SEMANTIC_MODEL_URL__": (
+            "powerbi://api.powerbi.com/v1.0/myorg/" + workspace_name
+        ),
+        "__PLAN_SQL_CONNECTION_ID__": plan_sql_connection_id,
     }
     definition_parts: list[dict[str, str]] = []
     for path in sorted(file for file in root.rglob("*") if file.is_file()):
@@ -639,15 +630,18 @@ def plan_definition(
                     json_text(_plan_comment_settings(sheet)),
                 ),
                 part(
-                    f"{visual_root}/dataInput.json",
-                    json_text(_plan_data_input(sheet)),
-                ),
-                part(
                     f"{visual_root}/properties.json",
                     json_text(_plan_visual_properties(sheet)),
                 ),
             ]
         )
+        if sheet["inputs"]:
+            definition_parts.append(
+                part(
+                    f"{visual_root}/dataInput.json",
+                    json_text(_plan_data_input(sheet)),
+                )
+            )
         if sheet.get("writebackTable"):
             definition_parts.append(
                 part(

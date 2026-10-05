@@ -1,6 +1,7 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/plan/definition/Definition/1.0.0/schema.json",
   "workloadItemName": "SAP Finance Planning Enterprise",
+  "appDBconnection": "__PLAN_SQL_CONNECTION_ID__",
   "semanticModelReference": {
     "connection": {
       "connectionId": "__SEMANTIC_MODEL_CONNECTION_ID__"
@@ -16,7 +17,9 @@
     "semanticModelWorkspaceName": "__WORKSPACE_NAME__",
     "directLakeMode": true,
     "directQueryMode": false,
-    "sourceType": "WORKLOAD"
+    "sourceType": "WORKLOAD",
+    "artifactId": "__SEMANTIC_MODEL_ID__",
+    "url": "__SEMANTIC_MODEL_URL__"
   },
   "sheets": [
     {

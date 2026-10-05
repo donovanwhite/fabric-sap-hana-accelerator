@@ -2,7 +2,7 @@
 title: SAP Finance Fabric automated deployment
 description: Deploy the complete accelerator into an existing Microsoft Fabric workspace
 author: Data and AI Engineering
-ms.date: 2026-10-02
+ms.date: 2026-10-05
 ms.topic: tutorial
 keywords:
   - Microsoft Fabric
@@ -132,11 +132,12 @@ Lakehouse SQL endpoint and database name and substitutes them into the TMDL
 expression before deployment.
 
 The Plan item uses the `SAP Finance` semantic model for governed actuals. Fabric
-creates its internal application database automatically. The separate
-`SAP_FIN_PLAN_DB` stores governed scenarios, assumptions, and writeback data.
-After the first deployment, create an OAuth2 Fabric SQL connection to that
-database and configure the Planning visual writeback destination as described
-in [`artefacts/planner/README.md`](../artefacts/planner/README.md).
+creates its internal application database automatically. The installer binds
+`conn_sap_finance_sql` to that application database for viewer collaboration
+and to the generated writeback destinations. The separate `SAP_FIN_PLAN_DB`
+stores governed scenarios, assumptions, and writeback data. Validation steps
+are documented in
+[`artefacts/planner/README.md`](../artefacts/planner/README.md).
 
 The installer is idempotent with `-Overwrite`. Generated definitions are
 checked for unresolved deployment tokens and source-tenant workspace, item,

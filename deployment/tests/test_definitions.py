@@ -186,6 +186,10 @@ class DefinitionTests(unittest.TestCase):
         reference = plan["semanticModelReference"]
 
         self.assertEqual(
+            plan["appDBconnection"],
+            "55555555-5555-5555-5555-555555555555",
+        )
+        self.assertEqual(
             reference["semanticModel"]["workspaceId"],
             "11111111-1111-1111-1111-111111111111",
         )
@@ -198,6 +202,14 @@ class DefinitionTests(unittest.TestCase):
             "33333333-3333-3333-3333-333333333333",
         )
         self.assertTrue(reference["directLakeMode"])
+        self.assertEqual(
+            reference["url"],
+            "powerbi://api.powerbi.com/v1.0/myorg/Finance Test",
+        )
+        self.assertEqual(
+            reference["artifactId"],
+            "22222222-2222-2222-2222-222222222222",
+        )
         self.assertEqual(len(plan["sheets"]), 5)
         self.assertTrue(
             all(sheet["sheetType"] == "PLANNING" for sheet in plan["sheets"])
@@ -239,7 +251,24 @@ class DefinitionTests(unittest.TestCase):
             for item in definition["parts"]
             if item["path"].endswith("/dataInput.json")
         ]
-        self.assertEqual(len(data_input_parts), 5)
+        self.assertEqual(len(data_input_parts), 3)
+        budget_input = json.loads(
+            decode_part(
+                definition,
+                (
+                    "sheets/8dcecfce-d29a-5de8-b1cd-29df3cf077ec/"
+                    "visuals/330d95e6-b32b-5f7c-ab1e-e00a68579c89/"
+                    "dataInput.json"
+                ),
+            ).decode("utf-8")
+        )
+        self.assertEqual(len(budget_input["columns"]), 2)
+        for column in budget_input["columns"]:
+            self.assertEqual(column["boundToFilterContext"], 1)
+            self.assertEqual(column["sidecarHydrationStatus"], 10)
+            self.assertEqual(column["status"], 10)
+            self.assertIsNone(column["sidecarHydrationLeaseAt"])
+            self.assertNotIn("disableWriteAccess", column)
 
     def test_pipeline_template_contains_no_legacy_environment_ids(self) -> None:
         template = (
