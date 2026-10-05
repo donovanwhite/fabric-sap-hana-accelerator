@@ -92,12 +92,12 @@ that **Hide value** is disabled so the rule cannot suppress finance values.
 The deployed demonstration Planner contains a governed pseudo-budget created
 through the **Budget Input** planning sheet:
 
-1. `Budget Amount Local` is seeded from
-   `Plan vs Actual Actual Amount` with **Copy from another series**.
+1. `Budget Amount Local` is seeded from `Gross Actual Activity` with
+   **Copy from another series**.
 2. `Pseudo Budget Projection` applies a five-percent planning uplift:
-   `[Plan vs Actual Actual Amount] * 1.05`.
+   `[Gross Actual Activity] * 1.05`.
 3. `Pseudo Budget Variance` shows the projected variance:
-   `[Plan vs Actual Actual Amount] - [Pseudo Budget Projection]`.
+   `[Gross Actual Activity] - [Pseudo Budget Projection]`.
 4. Writeback targets
    `SAP_FIN_PLAN_DB.plan.finance_budget_writeback` through
    `conn_sap_finance_planning_sql`.
@@ -128,6 +128,22 @@ The public Plan definition creates the empty reporting sheet on a fresh
 tenant. Visual authoring is initialized through the Fabric UI, and overwrite
 deployment preserves the existing Plan definition so Intelligence visuals,
 editable inputs, and writeback sidecar state are not deleted.
+
+## Demonstration narrative and ownership
+
+The live finance story uses:
+
+* Gross actual activity for executive comparisons because balanced
+  double-entry postings cancel to zero at net total
+* Company and GL account as the Budget input grain because source plan rows do
+  not consistently carry Cost Center
+* Scenario assumptions of 5.5% inflation, 18.5 ZAR/USD, and 2.5% headcount
+  growth
+* A populated planning commentary and `FP&A Planning Lead` decision owner
+* Purpose-written titles and descriptions on every Planning visual
+
+These choices make the demonstration explicit. They are not presented as
+approved Eskom planning policy.
 
 ## Deployment
 

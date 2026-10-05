@@ -257,6 +257,11 @@ class DefinitionTests(unittest.TestCase):
         self.assertTrue(
             budget_properties["visualStyles"]["background"]["isEnabled"]
         )
+        budget_title = budget_properties["visualState"]["chartCustomTitle"][
+            "customTitle"
+        ]["elements"][0]["content"]
+        self.assertIn("FY25-FY26 Budget Development", budget_title)
+        self.assertIn("gross actual activity", budget_title)
         writeback_parts = [
             item
             for item in definition["parts"]
@@ -281,12 +286,25 @@ class DefinitionTests(unittest.TestCase):
         )
         self.assertEqual(
             budget_sheet["demoSeed"]["source"],
-            "Plan vs Actual Actual Amount",
+            "Gross Actual Activity",
         )
         self.assertEqual(
             [item["name"] for item in budget_sheet["demoFormulaMeasures"]],
             ["Pseudo Budget Projection", "Pseudo Budget Variance"],
         )
+        assumptions = next(
+            sheet
+            for sheet in plan_spec["sheets"]
+            if sheet["name"] == "Scenario Assumptions"
+        )
+        defaults = {
+            item["name"]: item.get("demoDefault")
+            for item in assumptions["inputs"]
+        }
+        self.assertEqual(defaults["Inflation Rate"], 0.055)
+        self.assertEqual(defaults["FX Rate"], 18.5)
+        self.assertEqual(defaults["Headcount Growth Rate"], 0.025)
+        self.assertEqual(defaults["Decision Owner"], "FP&A Planning Lead")
 
     def test_pipeline_template_contains_no_legacy_environment_ids(self) -> None:
         template = (
@@ -391,6 +409,14 @@ class DefinitionTests(unittest.TestCase):
         ).decode("utf-8")
         self.assertIn("Sql.Database", expression)
         self.assertNotIn("__GOLD_SQL_SERVER__", expression)
+        plan_actual = decode_part(
+            semantic,
+            "definition/tables/Plan vs Actual Monthly.tmdl",
+        ).decode("utf-8")
+        self.assertIn(
+            "measure 'Plan vs Actual Actual Amount' = [Gross Actual Activity]",
+            plan_actual,
+        )
 
         report = directory_definition(
             ARTEFACTS / "semantic" / "SAP Finance Executive Insights.Report",

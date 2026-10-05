@@ -430,13 +430,50 @@ def _plan_visual_properties(sheet: dict[str, Any]) -> dict[str, Any]:
             },
             "superFilterAssignments": [],
             "visualState": {
+                "chartCustomTitle": {
+                    "customTitle": {
+                        "elements": [
+                            {
+                                "content": (
+                                    f"<p>{sheet['title']}</p>"
+                                    f"<p>{sheet['description']}</p>"
+                                )
+                            }
+                        ]
+                    }
+                },
                 "filterContextProperties": {
                     "filterContextDimensions": [],
                     "filterContextHash": None,
                     "filterContextHashMap": {},
                     "filterContextJson": {},
                 },
+                "globalStyles": {
+                    "headerFontColor": "#103C5A",
+                    "headerFontSize": "14px",
+                    "headerFormat": False,
+                    "headerHeight": 30,
+                    "headerLabelOrient": "initial",
+                },
+                "gridStyles": {
+                    "headerGridLines": True,
+                    "titleAndChartSpace": 4,
+                },
                 "locale": "en-US",
+                "readViewConfig": {
+                    "fabricHeaderFooter": {
+                        "actions": False,
+                        "add": False,
+                        "cell": False,
+                        "insert": False,
+                        "layout": False,
+                        "preset": False,
+                        "variables": False,
+                        "view": False,
+                    },
+                    "indicator": {"header": True},
+                },
+                "showHeaderFooter": False,
                 "themeColors": theme_colors,
                 "visualStyles": visual_styles,
             },

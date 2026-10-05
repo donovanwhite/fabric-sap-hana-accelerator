@@ -1,8 +1,8 @@
 /// Pre-aggregated actual, budget, forecast, and plan values by month and version.
 table 'Plan vs Actual Monthly'
 
-	/// Actual amount represented in the plan-versus-actual serving fact.
-	measure 'Plan vs Actual Actual Amount' = CALCULATE(SUM('Plan vs Actual Monthly'[Actual Amount Local]), REMOVEFILTERS('Plan vs Actual Monthly'[Plan Source], 'Plan vs Actual Monthly'[Scenario], 'Plan vs Actual Monthly'[Plan Version]))
+	/// Gross actual financial activity for planning comparisons. Absolute activity prevents balanced double-entry postings from cancelling to zero at executive totals.
+	measure 'Plan vs Actual Actual Amount' = [Gross Actual Activity]
 		formatString: #,##0.00
 		displayFolder: Amounts
 

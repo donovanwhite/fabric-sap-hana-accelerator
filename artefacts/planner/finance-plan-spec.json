@@ -8,7 +8,7 @@
         {
           "type": "KPI",
           "category": "Fiscal Period Name",
-          "actual": "Plan vs Actual Actual Amount",
+          "actual": "Gross Actual Activity",
           "comparisons": [
             "Plan vs Actual Plan Amount",
             "Plan vs Actual Forecast Amount"
@@ -17,7 +17,7 @@
         {
           "type": "Integrated variance column",
           "category": "Fiscal Period Name",
-          "actual": "Plan vs Actual Actual Amount",
+          "actual": "Gross Actual Activity",
           "comparisons": [
             "Plan vs Actual Plan Amount",
             "Plan vs Actual Forecast Amount",
@@ -32,6 +32,8 @@
       "sheetId": "8398206f-8c4a-5bd4-af2b-dc0f3af52243",
       "visualId": "5565b643-ac1b-5537-b5cd-0a2ee50fa12a",
       "name": "Executive Plan Summary",
+      "title": "Executive Plan Summary",
+      "description": "Review gross actual activity against approved plan and forecast across fiscal periods.",
       "dimensions": [
         {"table": "Company", "column": "Company Code", "dataType": "String", "bucket": "rows"},
         {"table": "Division", "column": "Division Code", "dataType": "String", "bucket": "rows"},
@@ -39,7 +41,7 @@
         {"table": "Fiscal Period", "column": "Fiscal Period Name", "dataType": "String", "bucket": "columns", "hierarchy": "Fiscal Period Hierarchy"}
       ],
       "nativeMeasures": [
-        {"table": "Plan vs Actual Monthly", "name": "Plan vs Actual Actual Amount", "format": "#,##0.00"},
+        {"table": "Plan vs Actual Monthly", "name": "Gross Actual Activity", "format": "#,##0.00"},
         {"table": "Plan vs Actual Monthly", "name": "Plan vs Actual Plan Amount", "format": "#,##0.00"},
         {"table": "Plan vs Actual Monthly", "name": "Plan vs Actual Forecast Amount", "format": "#,##0.00"},
         {"table": "Plan vs Actual Monthly", "name": "Variance to Plan", "format": "#,##0.00"},
@@ -53,15 +55,16 @@
       "sheetId": "8dcecfce-d29a-5de8-b1cd-29df3cf077ec",
       "visualId": "330d95e6-b32b-5f7c-ab1e-e00a68579c89",
       "name": "Budget Input",
+      "title": "FY25-FY26 Budget Development",
+      "description": "Build company and account budgets from gross actual activity, then review projected variance before writeback.",
       "dimensions": [
         {"table": "Company", "column": "Company Code", "dataType": "String", "bucket": "rows"},
-        {"table": "Cost Center", "column": "Cost Center Code", "dataType": "String", "bucket": "rows"},
         {"table": "GL Account", "column": "GL Account Code", "dataType": "String", "bucket": "rows"},
         {"table": "Fiscal Period", "column": "Fiscal Year", "dataType": "Int64", "bucket": "columns", "hierarchy": "Fiscal Period Hierarchy"},
         {"table": "Fiscal Period", "column": "Fiscal Period Name", "dataType": "String", "bucket": "columns", "hierarchy": "Fiscal Period Hierarchy"}
       ],
       "nativeMeasures": [
-        {"table": "Plan vs Actual Monthly", "name": "Plan vs Actual Actual Amount", "format": "#,##0.00"},
+        {"table": "Plan vs Actual Monthly", "name": "Gross Actual Activity", "format": "#,##0.00"},
         {"table": "Plan vs Actual Monthly", "name": "Plan vs Actual Plan Amount", "format": "#,##0.00"},
         {"table": "Plan vs Actual Monthly", "name": "Variance to Plan", "format": "#,##0.00"},
         {"table": "Plan vs Actual Monthly", "name": "Variance to Plan Percentage", "format": "0.00%"}
@@ -72,18 +75,18 @@
       ],
       "demoSeed": {
         "input": "Budget Amount Local",
-        "source": "Plan vs Actual Actual Amount",
+        "source": "Gross Actual Activity",
         "method": "Copy from another series"
       },
       "demoFormulaMeasures": [
         {
           "name": "Pseudo Budget Projection",
-          "formula": "[Plan vs Actual Actual Amount] * 1.05",
+          "formula": "[Gross Actual Activity] * 1.05",
           "description": "Illustrative budget equal to actuals plus five percent"
         },
         {
           "name": "Pseudo Budget Variance",
-          "formula": "[Plan vs Actual Actual Amount] - [Pseudo Budget Projection]",
+          "formula": "[Gross Actual Activity] - [Pseudo Budget Projection]",
           "description": "Actual amount less the illustrative five-percent budget projection"
         }
       ],
@@ -93,6 +96,8 @@
       "sheetId": "cdeeb4c8-804d-5f69-8708-f5d9dfc403cc",
       "visualId": "6af603f4-f5f8-57f0-82cf-e2ccde78d537",
       "name": "Rolling Forecast",
+      "title": "Rolling Forecast Outlook",
+      "description": "Reforecast remaining periods and explain expected movements against the approved plan.",
       "dimensions": [
         {"table": "Company", "column": "Company Code", "dataType": "String", "bucket": "rows"},
         {"table": "Profit Center", "column": "Profit Center Code", "dataType": "String", "bucket": "rows"},
@@ -101,7 +106,7 @@
         {"table": "Fiscal Period", "column": "Fiscal Period Name", "dataType": "String", "bucket": "columns", "hierarchy": "Fiscal Period Hierarchy"}
       ],
       "nativeMeasures": [
-        {"table": "Plan vs Actual Monthly", "name": "Plan vs Actual Actual Amount", "format": "#,##0.00"},
+        {"table": "Plan vs Actual Monthly", "name": "Gross Actual Activity", "format": "#,##0.00"},
         {"table": "Plan vs Actual Monthly", "name": "Plan vs Actual Forecast Amount", "format": "#,##0.00"},
         {"table": "Plan vs Actual Monthly", "name": "Variance to Forecast", "format": "#,##0.00"},
         {"table": "Plan vs Actual Monthly", "name": "Variance to Forecast Percentage", "format": "0.00%"}
@@ -116,6 +121,8 @@
       "sheetId": "3140fd7c-edc8-5cc3-af3a-55b545e83c99",
       "visualId": "abbfd3f0-21ac-5b90-a484-ba71029053d0",
       "name": "Scenario Assumptions",
+      "title": "Scenario Assumptions and Ownership",
+      "description": "Set and govern the FY25-FY26 inflation, FX, and workforce drivers used in budget and forecast decisions.",
       "dimensions": [
         {"table": "Company", "column": "Company Code", "dataType": "String", "bucket": "rows"},
         {"table": "Division", "column": "Division Code", "dataType": "String", "bucket": "rows"},
@@ -123,10 +130,12 @@
       ],
       "nativeMeasures": [],
       "inputs": [
-        {"guid": "f36fe518-4863-591d-bd5f-5e340584ca7c", "name": "Inflation Rate", "kind": "Number", "description": "Scenario inflation assumption as a decimal rate", "column": "inflation_rate"},
-        {"guid": "4ea6579a-1a9a-5bc2-8b15-bdcbbc71b60d", "name": "FX Rate", "kind": "Number", "description": "Scenario foreign exchange rate assumption", "column": "fx_rate"},
-        {"guid": "fc4c5f3c-651b-5dec-bb3f-3885b4362c86", "name": "Headcount Growth Rate", "kind": "Number", "description": "Scenario headcount growth assumption as a decimal rate", "column": "headcount_growth_rate"},
-        {"guid": "9596adde-a36c-5c3c-9c98-75c7aad63ce6", "name": "Assumption Comment", "kind": "Text", "description": "Source, rationale, owner, and risk note", "column": "assumption_comment"}
+        {"guid": "f36fe518-4863-591d-bd5f-5e340584ca7c", "name": "Inflation Rate", "kind": "Number", "description": "Scenario inflation assumption as a decimal rate", "column": "inflation_rate", "demoDefault": 0.055},
+        {"guid": "4ea6579a-1a9a-5bc2-8b15-bdcbbc71b60d", "name": "FX Rate", "kind": "Number", "description": "Scenario foreign exchange rate assumption", "column": "fx_rate", "demoDefault": 18.5},
+        {"guid": "fc4c5f3c-651b-5dec-bb3f-3885b4362c86", "name": "Headcount Growth Rate", "kind": "Number", "description": "Scenario headcount growth assumption as a decimal rate", "column": "headcount_growth_rate", "demoDefault": 0.025},
+        {"guid": "9596adde-a36c-5c3c-9c98-75c7aad63ce6", "name": "Planning Commentary", "kind": "Text", "description": "Finance narrative, rationale, and risk note", "column": "planning_commentary", "demoDefault": "Base assumptions approved for demonstration planning cycle."},
+        {"guid": "5dadc72a-746f-5c35-a13e-2df946b436d1", "name": "Assumption Owner", "kind": "Person", "description": "Finance owner accountable for maintaining the assumption", "column": "assumption_owner"},
+        {"guid": "44f322f4-bbeb-5cda-91db-e6fb2c0f51f1", "name": "Decision Owner", "kind": "Text", "description": "Named finance role accountable for the assumption decision", "column": "decision_owner", "demoDefault": "FP&A Planning Lead"}
       ],
       "writebackTable": "finance_assumption_writeback"
     },
@@ -134,6 +143,8 @@
       "sheetId": "cc19ccfa-9021-53d2-90b9-75187075968b",
       "visualId": "1032ee3c-3694-54e8-bfc4-336861a26acc",
       "name": "Actual vs Plan Review",
+      "title": "Actual vs Plan Performance Review",
+      "description": "Investigate material actual, budget, and forecast variances by company, division, and account.",
       "dimensions": [
         {"table": "Company", "column": "Company Code", "dataType": "String", "bucket": "rows"},
         {"table": "Division", "column": "Division Code", "dataType": "String", "bucket": "rows"},
@@ -142,7 +153,7 @@
         {"table": "Fiscal Period", "column": "Fiscal Period Name", "dataType": "String", "bucket": "columns", "hierarchy": "Fiscal Period Hierarchy"}
       ],
       "nativeMeasures": [
-        {"table": "Plan vs Actual Monthly", "name": "Plan vs Actual Actual Amount", "format": "#,##0.00"},
+        {"table": "Plan vs Actual Monthly", "name": "Gross Actual Activity", "format": "#,##0.00"},
         {"table": "Plan vs Actual Monthly", "name": "Plan vs Actual Plan Amount", "format": "#,##0.00"},
         {"table": "Plan vs Actual Monthly", "name": "Plan vs Actual Forecast Amount", "format": "#,##0.00"},
         {"table": "Plan vs Actual Monthly", "name": "Variance to Plan", "format": "#,##0.00"},
