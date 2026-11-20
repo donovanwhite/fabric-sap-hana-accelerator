@@ -2,7 +2,7 @@
 title: SAP Finance Fabric solution accelerator
 description: Deploy a complete SAP Finance medallion analytics solution into Microsoft Fabric
 author: Data and AI Engineering
-ms.date: 2026-11-19
+ms.date: 2026-11-20
 ms.topic: overview
 keywords:
   - Microsoft Fabric
@@ -22,10 +22,22 @@ Agent.
 > [!IMPORTANT]
 > All included data is synthetic demonstration data.
 
+## SAP ledger configuration
+
+`0L` is the synthetic profile's leading-ledger default, not a universal
+customer reporting scope. Review the
+[SAP ledger configuration requirements and caveats](./artefacts/sap/README.md#sap-ledger-configuration-requirements-and-caveats)
+with SAP Finance before changing ledger scope. The guide covers ownership,
+additional and extension ledgers, backfill, checkpoint impacts and current
+extraction limitations.
+
 ## Deploy
 
 You need an existing Fabric workspace on active capacity, Python 3.11–3.13,
-Azure CLI, and Contributor access.
+Azure CLI, workspace Contributor or higher access, and capacity administrator
+access on the assigned capacity (or supported capacity-level Contributor
+permission). Workspace access alone is insufficient for the current
+installer. See [required deployment permissions](./deployment/README.md#required-deployment-permissions).
 
 ```powershell
 az login --tenant "<tenant-id>" --allow-no-subscriptions

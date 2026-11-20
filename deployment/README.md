@@ -2,14 +2,14 @@
 title: SAP Finance Fabric automated deployment
 description: Deploy the complete accelerator into an existing Microsoft Fabric workspace
 author: Data and AI Engineering
-ms.date: 2026-11-19
+ms.date: 2026-11-20
 ms.topic: tutorial
 keywords:
   - Microsoft Fabric
   - deployment
   - REST API
   - SAP Finance
-estimated_reading_time: 5
+estimated_reading_time: 7
 ---
 
 ## Deployment contract
@@ -19,6 +19,8 @@ The only Fabric prerequisites are:
 * An existing Microsoft Fabric tenant
 * An existing workspace on active Fabric capacity
 * Contributor or higher access to that workspace
+* Capacity administrator access on the assigned capacity, or supported
+  capacity-level Contributor permission for the capacity preflight
 * An authorized Shareable Cloud `FabricSql` source connection using OAuth2
 * A separate Shareable Cloud `FabricSql` planning connection using OAuth2
 * An authorized Shareable Cloud `PowerBIDatasets` connection using OAuth2
@@ -33,6 +35,41 @@ For named source timezones on Windows, install the package with
 `python -m pip install .\deployment`; its conditional `tzdata` dependency
 provides the IANA timezone database. The synthetic UTC profile needs no
 additional timezone data.
+
+## Required deployment permissions
+
+Workspace and capacity permissions are separate. The deploying identity needs
+Contributor or higher access on the target workspace. It also needs capacity
+administrator access on the assigned capacity, or a supported capacity-level
+Contributor assignment. Workspace Contributor alone does not make the
+assigned capacity visible to the installer.
+
+The current installer calls `GET /v1/capacities`, finds the workspace's
+assigned capacity and requires its state to be `Active` before creating
+items. Microsoft's
+[List Capacities API](https://learn.microsoft.com/rest/api/fabric/core/capacities/list-capacities)
+accepts administrator or contributor permission on the capacity. For delegated
+callers, its documented scope is `Capacity.Read.All` or
+`Capacity.ReadWrite.All`; API scopes do not replace the required resource role.
+
+| Access boundary | Required access                                                |
+| --------------- | -------------------------------------------------------------- |
+| Workspace       | Contributor, Member or Admin on the target workspace           |
+| Capacity        | Capacity administrator or supported capacity-level Contributor |
+| Connections     | Permission to use, read and test each selected connection      |
+
+> [!IMPORTANT]
+> If an active capacity is absent from the caller's capacity list, preflight
+> can report it as `not visible`. Check capacity-level access and the active
+> tenant before treating this as a paused-capacity problem. Use the same
+> deploying identity for `-DryRun` and deployment.
+
+Have the capacity owner arrange the appropriate access under your
+organization's least-privilege policy. Capacity administrator is not the same
+as Fabric tenant administrator or Azure subscription Owner; this installer
+does not require those broader roles to deploy into an already assigned
+workspace. It does not create, resize or reassign capacities, or grant roles.
+See [capacity administration](https://learn.microsoft.com/fabric/admin/capacity-settings).
 
 ## Deploy
 
@@ -202,14 +239,17 @@ az login --tenant "<tenant-id>" --allow-no-subscriptions
 ```
 
 For automation, sign in Azure CLI with a service principal before invoking the
-same command. The principal must have Contributor or higher access to the
-target workspace and permission to read and test the selected connection. The
-connection must already exist and be shared with the principal.
+same command. The principal itself must satisfy the
+[workspace, capacity and connection permissions](#required-deployment-permissions);
+the operator's personal roles are not inherited. Connections must already
+exist and be shared with the principal. Tenant settings must also permit
+the service principal to use the required Fabric APIs.
 
 ## Failure behavior
 
 Each deployment step is validated before its dependants start. The installer:
 
+* Requires the assigned capacity to be visible and active for the deploying identity
 * Tests OAuth connection health before workspace mutation
 * Rejects ambiguous names and incompatible item-type collisions
 * Rebinds notebook, Lakehouse, SQL database, report, model, and agent metadata

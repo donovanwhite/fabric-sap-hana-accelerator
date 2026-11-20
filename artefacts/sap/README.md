@@ -2,7 +2,7 @@
 title: SAP Finance source contracts and incremental extraction
 description: Read-only SAP HANA extraction, synthetic source compatibility and schema evidence
 author: Data and AI Engineering
-ms.date: 2026-11-19
+ms.date: 2026-11-20
 ms.topic: tutorial
 keywords:
   - Microsoft Fabric
@@ -10,7 +10,7 @@ keywords:
   - SAP HANA
   - Data Factory
   - document discovery
-estimated_reading_time: 15
+estimated_reading_time: 20
 ---
 
 ## Purpose
@@ -240,6 +240,161 @@ forecasts, and never aggregate unlike currencies. This verifies amount
 transport; production planning currency interpretation still requires the
 approved mapping. `fiscalYearRange` retains the demonstration's original
 1900-2100 technical rule without hardcoding that range in the engine.
+
+## SAP ledger configuration requirements and caveats
+
+`ACDOCA.RLDNR` identifies the accounting ledger. `0L` is SAP's standard
+leading-ledger default: zero followed by L, not the letter O. We retain it as
+the synthetic profile's default. It does not by itself identify an accounting
+principle, a currency, or every ledger a customer needs for reporting.
+
+### Ownership and required decisions
+
+SAP Finance and the SAP functional configuration team determine the approved
+accounting scope. Engineering translates that decision into extraction and
+reporting controls; it must not infer the authoritative ledger from its code
+alone or automatically include every ledger discovered at the source.
+
+| Owner                    | Required decision or evidence                                         |
+| ------------------------ | --------------------------------------------------------------------- |
+| SAP Finance              | Approve accounting views, ledger scope, history and close policies.   |
+| SAP functional team      | Confirm ledger types, company assignments, currencies and calendars.  |
+| SAP source or Basis team | Verify installed fields, read permissions and HANA workload limits.   |
+| Data engineering         | Enforce scope, initialize history and reconcile each approved ledger. |
+| Reporting owners         | Select ledger defaults and preserve comparable monetary scope.        |
+
+Record the approved source client, ledger codes and types, company-code
+assignments, accounting principles, currency mappings, fiscal-year variants,
+activation/history coverage and reconciliation frequency. Non-leading ledgers
+need not be active for every company code. Use the installed SAP configuration
+and Finance-approved reports as evidence, not the demonstration inventory.
+
+The accelerator reads SAP through authorized SQL. It does not create ledgers,
+change SAP configuration, or require an ABAP add-on.
+
+### Current extraction scope
+
+The ACDOCA contract in
+[factory-copy-contract.json](./factory-copy-contract.json) declares logical
+partitions on `GJAHR`, `RBUKRS` and `RLDNR`. Its supplied ledger list is
+`["0L"]`. Ledger is also part of the complete ACDOCA business key, so rows
+from different ledgers remain distinct in Silver and Gold.
+
+> [!WARNING]
+> The current runtime does not enforce one ledger allowlist across all
+> extraction modes. `partitionValues.RLDNR` alone is not a global source
+> filter. Resolve this scope-consistency gap before production onboarding
+> or treating an additional ledger as a configuration-only change.
+
+| Extraction path           | Current ACDOCA ledger behavior                                        |
+| ------------------------- | --------------------------------------------------------------------- |
+| Historical initialization | Uses `partitionValues.RLDNR`, currently `0L`.                         |
+| Scheduled reconciliation  | Uses the same configured partition list.                              |
+| On-demand partition read  | Uses the requested ledger; does not check membership in that list.    |
+| Document incremental      | Reads all ledger lines for discovered documents unless filters apply. |
+| Full snapshot             | Reads all ledger rows permitted by configured source filters.         |
+
+The supplied contract has no `filters.RLDNR` predicate. Consequently,
+incremental discovery can ingest another ledger's newly entered documents
+without that ledger's history having been initialized or scheduled for
+reconciliation. Engineering must make the approved ledger selection govern
+both partition generation and query filtering, including on-demand requests,
+rather than maintain conflicting independent lists.
+
+BKPF headers are not ledger-specific. Keep the existing client, company,
+fiscal-year and document-number join; do not invent a BKPF ledger join or
+duplicate header extraction for each ACDOCA ledger.
+
+### Adding or removing a standard ledger
+
+After Finance approves a second standard ledger, its partition inventory can
+be represented in ACDOCA's existing `partitionValues` as follows:
+
+```json
+{
+  "GJAHR": ["2025", "2026"],
+  "RBUKRS": ["1000", "1100", "1200", "1300"],
+  "RLDNR": ["0L", "2L"]
+}
+```
+
+`2L`, the years and the company codes above are examples, not customer
+defaults. The planner creates combinations of the configured values; adding a
+ledger therefore adds work for every configured company and year. Confirm
+that these combinations represent the approved source scope. Logical
+partitions do not imply physical HANA partitioning.
+
+A standard additional ledger does not require its own notebook, but it does
+require an approved historical load before ongoing discovery can represent
+complete history. Changing partition values changes checkpoint compatibility.
+With the current checkpoint design, the next `AUTO` operation can select
+`INITIALIZE` and re-read existing configured partitions as well as the new
+ledger. It is not a new-ledger-only backfill.
+
+An on-demand `PARTITION_REFRESH` does not advance the document-entry
+checkpoint and is not a substitute for initializing a changed scope. Complete
+or recover any unfinished run with its pinned contract before changing
+metadata. Plan the rebaseline and its source/compute cost, then use the
+[existing deployment](../../deployment/README.md#required-deployment-permissions)
+and [pipeline operations](../pipeline/README.md).
+
+Removing a ledger from the inventory does not automatically purge its
+previously loaded Silver or Gold records. Finance must approve the retention
+and reporting treatment; do not interpret a configuration change as an
+instruction to delete historical financial data.
+
+### Extension ledgers
+
+An extension ledger can hold adjustments while relying on an underlying
+ledger, potentially through another extension ledger, for complete reporting.
+A direct SQL read filtered only to the extension code does not automatically
+reproduce that combined accounting view.
+
+The current generic path preserves the extracted ledger rows; it does not
+resolve extension-ledger chains or reconstruct underlying-plus-adjustment
+reporting. SAP Finance must define that interpretation and the engineering
+team must implement and reconcile an approved mapping before exposing an
+extension ledger as a complete accounting view. Do not treat it as an
+ordinary additional standard-ledger code.
+
+### Reporting, currency and planning impacts
+
+Preserve client, ledger and the currency corresponding to each monetary
+measure. The same economic posting can appear in multiple standard ledgers;
+summing them without an approved accounting interpretation can double-count
+activity. Ledger selection is not currency conversion or consolidation.
+See [SAP schema evidence](#sap-schema-evidence-and-release-assumptions) for
+the exact amount/currency pairs.
+
+Gold and the MLVs retain ledger identity. Monetary semantic measures reject
+ambiguous client/ledger/currency contexts, so adding a ledger can require
+report-filter changes before existing visuals return a total. Data Agent SQL
+must filter to one approved view or return separately labelled groups.
+
+The custom BUDGET source has a separate `financeContext.ledger`, currently
+`0L`. Adding an actuals ledger does not copy or reassign budgets to it.
+Finance must approve comparable actual/plan ledger and currency mappings.
+The supplied FAGLFLEXP projection is synthetic and still requires the
+release-specific planning mapping described below.
+
+### Production onboarding checklist
+
+1. Obtain Finance-approved client, ledger/type, company, history, currency
+   and fiscal-calendar scope, including any underlying-ledger relationships.
+2. Verify that every extraction mode enforces that scope. The current
+   incremental and on-demand allowlist gaps must be resolved first.
+3. Finish or recover existing runs, version the approved metadata and plan
+   initialization/rebaseline without discarding recovery data.
+4. In an authorized test workspace, reconcile complete keys, document
+   coverage and exact currency amounts against approved SAP reports. Exercise
+   new documents, historical adjustments, ledger isolation and replay.
+5. Confirm report and Data Agent scope, explicit budget mappings and the
+   accounting-close reconciliation schedule before production use.
+
+SAP references:
+
+* [Maintaining ledgers in Financial Accounting](https://learning.sap.com/courses/maintaining-financial-accounting-core-settings/maintaining-ledgers-in-financial-accounting)
+* [Defining and using extension ledgers](https://learning.sap.com/courses/detailing-configuration-of-r2r-posting-processes/defining-and-using-extension-ledgers_c05ca87b-a24e-44d5-9450-a63549417534)
 
 ## Production SAP HANA transition
 
