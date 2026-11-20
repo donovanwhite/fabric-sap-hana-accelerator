@@ -617,6 +617,7 @@ def pipeline_definition(
         for activity in activities:
             properties = activity.get("typeProperties", {})
             if activity["type"] == "ForEach":
+                properties["batchCount"] = contract["maxConcurrency"]
                 bind(properties["activities"])
             if activity["type"] == "Copy":
                 source = properties["source"]

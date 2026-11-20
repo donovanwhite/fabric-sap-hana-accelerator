@@ -264,7 +264,7 @@ class SparkRecoveryTests(unittest.TestCase):
         operational["maxConcurrency"] = 3
         operational["reconciliation"] = {}
         runtime = FabricExtractionRuntime(self.spark, None, operational, lakehouse="")
-        empty = runtime.plan("empty", "2027-01-01T09:00:00Z", "AUTO")
+        empty = runtime.plan("empty", "2027-01-01T09:00:00Z", "AUTO", max_parallelism=3)
         self.assertEqual(len(empty["work_items"]), 3)
         for work in empty["work_items"]:
             metrics = self.extract(runtime, work)
@@ -280,12 +280,12 @@ class SparkRecoveryTests(unittest.TestCase):
             plan = json.loads(record["PLAN_JSON"])
             if plan["advances_checkpoint"]:
                 self.assertEqual(plan["checkpoint_end"], "20270101090000")
-        noop = runtime.plan("not-due", "2027-01-02T09:00:00Z", "RECONCILE")
+        noop = runtime.plan("not-due", "2027-01-02T09:00:00Z", "RECONCILE", max_parallelism=3)
         self.assertEqual(noop["work_items"], [])
         runtime.publish_run("not-due")
         self.assertEqual(runtime.commit("not-due")["committed_partitions"], 0)
         self.assertEqual(
-            runtime.plan("not-due", "2030-01-01T09:00:00Z", "RECONCILE")["work_items"], [],
+            runtime.plan("not-due", "2030-01-01T09:00:00Z", "RECONCILE", max_parallelism=3)["work_items"], [],
         )
         header = json.loads(runtime._record(runtime._header_id("not-due"))["PLAN_JSON"])
         self.assertEqual(header["upper_utc"], "2027-01-02T09:00:00+00:00")

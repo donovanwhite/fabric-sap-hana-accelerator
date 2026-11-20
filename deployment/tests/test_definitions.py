@@ -165,9 +165,10 @@ class DefinitionTests(unittest.TestCase):
         )
         self.assertFalse(loop["typeProperties"]["isSequential"])
         self.assertEqual(
-            loop["typeProperties"]["batchCount"]["value"],
-            "@pipeline().parameters.p_max_parallelism",
+            loop["typeProperties"]["batchCount"],
+            pipeline["properties"]["parameters"]["p_max_parallelism"]["defaultValue"],
         )
+        self.assertIs(type(loop["typeProperties"]["batchCount"]), int)
         self.assertEqual(copy_activity["typeProperties"]["parallelCopies"], 1)
         self.assertEqual(
             copy_activity["typeProperties"]["source"]["sqlReaderQuery"]["value"],
@@ -175,6 +176,29 @@ class DefinitionTests(unittest.TestCase):
         )
         for notebook_id in notebook_ids.values():
             self.assertIn(notebook_id, serialized)
+
+    def test_pipeline_compiles_source_concurrency_as_a_native_integer(self) -> None:
+        contract = json.loads((ARTEFACTS / "sap/factory-copy-contract.json").read_text())
+        contract["maxConcurrency"] = 4
+        definition = pipeline_definition(
+            ARTEFACTS / "pipeline/pipeline-content.json",
+            workspace_id="workspace",
+            notebook_ids={
+                path.stem: path.stem + "-id"
+                for path in (ARTEFACTS / "medallion").glob("*.ipynb")
+            },
+            sql_database_id="source", bronze_lakehouse_id="bronze",
+            sql_connection_id="managed-sql", extraction_contract=contract,
+        )
+        pipeline = json.loads(decode_part(definition, "pipeline-content.json"))
+        loop = next(
+            activity for activity in pipeline["properties"]["activities"]
+            if activity["type"] == "ForEach"
+        )
+        self.assertEqual(loop["typeProperties"]["batchCount"], 4)
+        self.assertEqual(
+            pipeline["properties"]["parameters"]["p_max_parallelism"]["defaultValue"], 4,
+        )
 
     def test_hana_binding_requires_verified_release_and_managed_connection(self) -> None:
         contract = json.loads(

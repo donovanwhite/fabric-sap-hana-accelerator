@@ -37,7 +37,7 @@
         "typeProperties": {
           "items": {"value":"@json(activity('nb_schema_val').output.result.exitValue).work_items","type":"Expression"},
           "isSequential": false,
-          "batchCount": {"value":"@pipeline().parameters.p_max_parallelism","type":"Expression"},
+          "batchCount": 2,
           "activities": [
             {
               "name": "cpy_full_table_snapshot",

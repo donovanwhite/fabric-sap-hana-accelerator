@@ -2,7 +2,7 @@
 title: SAP Finance hybrid extraction pipeline
 description: Runtime flow for the deployed SAP Finance accelerator
 author: Data and AI Engineering
-ms.date: 2026-11-19
+ms.date: 2026-11-20
 ms.topic: reference
 keywords:
   - Microsoft Fabric
@@ -55,7 +55,7 @@ source contract. No separate orchestration service or database is introduced.
 | `p_operation` | `AUTO` (default), `INITIALIZE`, `INCREMENTAL`, `FULL_SNAPSHOT`, `PARTITION_REFRESH`, or `RECONCILE` |
 | `p_run_id` | Empty for a new pipeline run; set to the original logical run ID for recovery |
 | `p_partitions` | Optional explicit refresh requests, shown below |
-| `p_max_parallelism` | Bounded ForEach concurrency, validated against source `maxConcurrency` |
+| `p_max_parallelism` | Must match the deployed source `maxConcurrency`; change the contract and redeploy to alter the bound |
 | `p_table_config` | Validated table metadata, generated from the shared contract |
 
 `AUTO` chooses partitioned initialization when no compatible committed
@@ -80,6 +80,9 @@ initialization; changing the physical source or its projection does not reuse
 another source's checkpoint. An unfinished run still requires its exact pinned
 contract on replay.
 
+Fabric requires a native integer `batchCount`, not an expression object. The
+deployer compiles it from source `maxConcurrency`; notebook 00 rejects a
+different per-run value before acquiring the writer or querying the source.
 The ForEach is parallel, while each Copy uses `parallelCopies=1` and
 `partitionOption=None`. These logical partitions do not assume physical HANA
 partitioning or multiply source concurrency through nested parallelism.

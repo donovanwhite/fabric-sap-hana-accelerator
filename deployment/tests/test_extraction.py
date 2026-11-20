@@ -10,6 +10,7 @@ import unittest
 from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
+from unittest.mock import Mock
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "artefacts" / "medallion"))
@@ -25,6 +26,7 @@ from sap_extraction import (  # noqa: E402
     plan_extractions,
     validate_envelope,
 )
+from sap_runtime import FabricExtractionRuntime  # noqa: E402
 
 
 def configuration() -> ExtractionConfig:
@@ -36,6 +38,18 @@ def configuration() -> ExtractionConfig:
 
 
 class ExtractionTests(unittest.TestCase):
+    def test_runtime_rejects_an_ineffective_parallelism_override_before_source_access(self) -> None:
+        runtime = object.__new__(FabricExtractionRuntime)
+        runtime.config = configuration()
+        runtime._acquire = Mock()
+        for value in (1, 3):
+            with self.subTest(value=value), self.assertRaisesRegex(ValueError, "redeploy"):
+                runtime.plan(
+                    "invalid-parallelism", "2026-11-20T10:00:00Z", "INITIALIZE",
+                    max_parallelism=value,
+                )
+        runtime._acquire.assert_not_called()
+
     def test_metadata_rejects_unsafe_identifiers_and_incomplete_keys(self) -> None:
         original = json.loads(
             (ROOT / "artefacts" / "sap" / "factory-copy-contract.json").read_text()

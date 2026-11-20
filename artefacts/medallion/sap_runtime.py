@@ -168,8 +168,12 @@ class FabricExtractionRuntime:
         self, run_id: str, upper_utc: str, operation: str,
         requested_partitions: str = "[]", max_parallelism: int = 2,
     ) -> dict:
-        if not 1 <= int(max_parallelism) <= self.config.max_concurrency:
-            raise ValueError(f"p_max_parallelism must be between 1 and {self.config.max_concurrency}")
+        if int(max_parallelism) != self.config.max_concurrency:
+            raise ValueError(
+                f"p_max_parallelism must match the deployed ForEach batchCount "
+                f"({self.config.max_concurrency}); change source maxConcurrency "
+                "and redeploy to change concurrency"
+            )
         upper = datetime.fromisoformat(upper_utc.replace("Z", "+00:00"))
         if upper.tzinfo is None:
             raise ValueError("run_upper_bound_utc must include its UTC offset")
