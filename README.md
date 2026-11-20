@@ -2,7 +2,7 @@
 title: SAP Finance Fabric solution accelerator
 description: Deploy a complete SAP Finance medallion analytics solution into Microsoft Fabric
 author: Data and AI Engineering
-ms.date: 2026-09-30
+ms.date: 2026-11-19
 ms.topic: overview
 keywords:
   - Microsoft Fabric
@@ -15,7 +15,7 @@ estimated_reading_time: 2
 ## Overview
 
 A deployable Microsoft Fabric accelerator for SAP Finance analytics. It
-includes full-snapshot ingestion, governed Silver upserts, a Kimball Gold
+includes hybrid read-only ingestion, governed Silver upserts, a Kimball Gold
 model, Materialized Lake Views, Direct Lake reporting, and a Fabric Data
 Agent.
 
@@ -33,6 +33,14 @@ az login --tenant "<tenant-id>" --allow-no-subscriptions
 ```
 
 Then run `pl_full_medallion_sap_finance` in the deployed workspace.
+Its `AUTO` operation initializes configured fiscal-year partitions once, then
+uses BKPF document-entry discovery and master-data snapshot comparison.
+Run `RECONCILE` on an accounting-approved schedule to revisit older documents.
+
+> [!IMPORTANT]
+> Document discovery is not CDC or complete source change capture. Historical
+> amendments, clearing, removals and headerless journal records require
+> complete partition reconciliation. No CDC service or ABAP add-on is used.
 
 ## Architecture
 
@@ -43,11 +51,11 @@ Then run `pl_full_medallion_sap_finance` in the deployed workspace.
 | Capability | Implementation |
 |------------|----------------|
 | Source | Seeded Fabric SQL Database simulating SAP HANA Finance |
-| Ingestion | Identity-based full snapshots with no synthetic CDC |
+| Ingestion | BKPF entry windows, fiscal-year refreshes, full snapshots and snapshot comparison |
 | Medallion | Bronze files, Silver business-key MERGE, Kimball Gold |
 | Analytics | Four Materialized Lake Views and Direct Lake on SQL |
 | Consumption | Executive report and Finance Data Agent |
-| Automation | Idempotent REST deployment with organized workspace folders |
+| Automation | Idempotent REST deployment, bounded Copy concurrency and durable replay |
 
 ## Documentation
 

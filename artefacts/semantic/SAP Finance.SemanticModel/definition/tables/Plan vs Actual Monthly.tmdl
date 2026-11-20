@@ -7,17 +7,17 @@ table 'Plan vs Actual Monthly'
 		displayFolder: Amounts
 
 	/// Gross actual financial activity using the absolute value of each aggregate row.
-	measure 'Gross Actual Activity' = CALCULATE(SUMX('Plan vs Actual Monthly', ABS('Plan vs Actual Monthly'[Actual Amount Local])), REMOVEFILTERS('Plan vs Actual Monthly'[Plan Source], 'Plan vs Actual Monthly'[Scenario], 'Plan vs Actual Monthly'[Plan Version]))
+	measure 'Gross Actual Activity' = CALCULATE(IF(ISEMPTY('Plan vs Actual Monthly') || (HASONEVALUE('Plan vs Actual Monthly'[SAP Client]) && HASONEVALUE('Plan vs Actual Monthly'[Ledger]) && HASONEVALUE('Plan vs Actual Monthly'[Local Currency])), SUMX('Plan vs Actual Monthly', ABS('Plan vs Actual Monthly'[Actual Amount Local])), ERROR("Select one SAP client, ledger and comparable planning currency.")), REMOVEFILTERS('Plan vs Actual Monthly'[Plan Source], 'Plan vs Actual Monthly'[Scenario], 'Plan vs Actual Monthly'[Plan Version]))
 		formatString: #,##0.00
 		displayFolder: Amounts
 
 	/// Plan or budget amount represented in the plan-versus-actual serving fact.
-	measure 'Plan vs Actual Plan Amount' = SUM('Plan vs Actual Monthly'[Plan Amount Local])
+	measure 'Plan vs Actual Plan Amount' = IF(ISEMPTY('Plan vs Actual Monthly') || (HASONEVALUE('Plan vs Actual Monthly'[SAP Client]) && HASONEVALUE('Plan vs Actual Monthly'[Ledger]) && HASONEVALUE('Plan vs Actual Monthly'[Local Currency])), SUM('Plan vs Actual Monthly'[Plan Amount Local]), ERROR("Select one SAP client, ledger and planning currency."))
 		formatString: #,##0.00
 		displayFolder: Amounts
 
 	/// Forecast amount represented in the plan-versus-actual serving fact.
-	measure 'Plan vs Actual Forecast Amount' = SUM('Plan vs Actual Monthly'[Forecast Amount Local])
+	measure 'Plan vs Actual Forecast Amount' = IF(ISEMPTY('Plan vs Actual Monthly') || (HASONEVALUE('Plan vs Actual Monthly'[SAP Client]) && HASONEVALUE('Plan vs Actual Monthly'[Ledger]) && HASONEVALUE('Plan vs Actual Monthly'[Local Currency])), SUM('Plan vs Actual Monthly'[Forecast Amount Local]), ERROR("Select one SAP client, ledger and planning currency."))
 		formatString: #,##0.00
 		displayFolder: Amounts
 
@@ -40,6 +40,24 @@ table 'Plan vs Actual Monthly'
 	measure 'Variance to Forecast Percentage' = DIVIDE([Variance to Forecast], ABS([Plan vs Actual Forecast Amount]))
 		formatString: 0.00%
 		displayFolder: Variance
+
+	/// SAP client in the serving grain.
+	column 'SAP Client'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: client
+
+	/// Ledger in the serving grain.
+	column 'Ledger'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: ledger
+
+	/// Comparable company-code currency of actual and planning amounts.
+	column 'Local Currency'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: currency_local
 
 	column 'Company Key'
 		dataType: string

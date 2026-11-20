@@ -2,10 +2,10 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/dataAgent/definition/dataSource/1.0.0/schema.json",
   "artifactId": "afdc0c5b-8ace-4cee-940f-b17076bcc0a7",
   "workspaceId": "0448ed4f-990e-4171-83f1-ea2a293e12d9",
-  "dataSourceInstructions": "### General knowledge\r\n\r\nThis source is a schema-enabled Gold Lakehouse. Query only `dim`, `fct`, and\r\n`mlv`. Use two-part names such as `mlv.gl_balance_monthly`. Use T-SQL syntax.\r\nGenerate read-only `SELECT` statements. Never use `SELECT *`.\r\n\r\nAll records are synthetic demonstration data. Do not describe results as actual\r\nEskom performance. Amounts are decimals. `AMOUNT_LOCAL` is company-code\r\ncurrency, `AMOUNT_GROUP` is group currency, and `AMOUNT_TRANSACTION` is\r\ntransaction currency. Current synthetic companies use ZAR, but still state the\r\ncurrency basis.\r\n\r\nDerive latest years and periods from the relevant fact or MLV. Do not use\r\n`MAX(dim.fiscal_period.FISCAL_YEAR)` because that dimension intentionally\r\nextends to 2035. Actual data currently ends before special periods, while plans\r\ncan include periods 13-16.\r\n\r\n### Source priority\r\n\r\n1. Use `mlv.plan_vs_actual_monthly` for actual-versus-plan summaries.\r\n2. Use `mlv.vendor_spend_monthly` for vendor summaries.\r\n3. Use `mlv.gl_balance_monthly` for debit, credit, net, and GL trends.\r\n4. Use `mlv.finance_actual_monthly` for reusable monthly actual summaries.\r\n5. Use `fct.finance_transaction` for document-line, cost-centre, reversal, or\r\n   customer detail.\r\n6. Use `fct.budget` for atomic budget, forecast, and FAGLFLEXP plan analysis.\r\n7. Join only the required `dim` tables for names and attributes.\r\n\r\n### Table descriptions\r\n\r\n* `fct.finance_transaction`: one ACDOCA ledger document line. Key:\r\n  `FINANCE_TRANSACTION_SK`. Important fields include `POSTING_DATE_SK`,\r\n  `FISCAL_PERIOD_KEY`, dimension surrogate keys, `RBUKRS`, `GJAHR`, `BELNR`,\r\n  `DOCLN`, `RLDNR`, `DRCRK`, `BLART`, `SGTXT`, currencies, signed amounts,\r\n  quantity, and `REVERSAL_DOCUMENT`.\r\n* `fct.budget`: one planning-source, scenario, entity, year, period, and\r\n  version row. Use `PLAN_SOURCE`, `SCENARIO`, `PLAN_VERSION`,\r\n  `PLAN_AMOUNT_LOCAL`, and `FORECAST_AMOUNT_LOCAL`.\r\n* `mlv.finance_actual_monthly`: monthly signed actual amounts and line counts\r\n  by conformed Finance dimensions.\r\n* `mlv.gl_balance_monthly`: monthly debit, credit, signed net movement, and\r\n  line counts by company, division, profit centre, cost centre, and GL.\r\n* `mlv.vendor_spend_monthly`: monthly vendor activity by company, division,\r\n  vendor, and GL account.\r\n* `mlv.plan_vs_actual_monthly`: monthly actual, plan, and forecast rows.\r\n  Actual rows use scenario/version `ACTUAL`; plan rows keep F1-F5.\r\n* `dim.company`: company code, name, city, country, currency, chart of accounts.\r\n* `dim.gl_account`: GL code, English name, account group, balance-sheet flag,\r\n  and P&L type.\r\n* `dim.cost_center`: controlling area, cost centre, company, profit centre,\r\n  responsible person, category, and hierarchy.\r\n* `dim.profit_center`: controlling area, profit centre, company, hierarchy,\r\n  division code, and segment.\r\n* `dim.division`: division code and name.\r\n* `dim.vendor` and `dim.customer`: business partner codes and descriptive\r\n  attributes. Never return `STCD1`.\r\n* `dim.date`: contiguous posting-date calendar.\r\n* `dim.fiscal_period`: fiscal years and periods 1-16. Join on\r\n  `FISCAL_PERIOD_KEY`.\r\n\r\n### Relationships\r\n\r\nJoin facts and MLVs to dimensions on their surrogate keys:\r\n\r\n* `company_sk` or `COMPANY_SK` to `dim.company.DIMENSION_SK`\r\n* `gl_account_sk` or `GL_ACCOUNT_SK` to `dim.gl_account.DIMENSION_SK`\r\n* `cost_center_sk` or `COST_CENTER_SK` to `dim.cost_center.DIMENSION_SK`\r\n* `profit_center_sk` or `PROFIT_CENTER_SK` to\r\n  `dim.profit_center.DIMENSION_SK`\r\n* `division_sk` or `DIVISION_SK` to `dim.division.DIMENSION_SK`\r\n* `vendor_sk` or `VENDOR_SK` to `dim.vendor.DIMENSION_SK`\r\n* `CUSTOMER_SK` to `dim.customer.DIMENSION_SK`\r\n* `FISCAL_PERIOD_KEY` to `dim.fiscal_period.FISCAL_PERIOD_KEY`\r\n* `POSTING_DATE_SK` to `dim.date.DATE_SK`\r\n\r\nFacts already carry the correct SCD2 version key. Do not filter joined SCD2\r\ndimensions to `IS_CURRENT = 1`, because that can remove historical fact rows.\r\nWhen listing a master dimension without a fact, use `IS_CURRENT = 1`.\r\n\r\n### Business rules\r\n\r\n* Overall signed actuals balance to zero because accounting documents are\r\n  balanced. Do not use total signed amount as an activity KPI.\r\n* Gross GL activity is debit plus credit:\r\n  `SUM(debit_amount_local) + SUM(credit_amount_local)`.\r\n* Gross vendor activity is `SUM(ABS(spend_amount_local))`.\r\n* For F5 actual-versus-plan, conditionally aggregate actual rows and F5 plan\r\n  rows. Do not filter the full query to F5.\r\n* Forecast is populated only for `BUDGET_FILE` rows. Compare forecast against\r\n  `PLAN_AMOUNT_LOCAL` on those same rows.\r\n* For period trends, order by `fiscal_period_key`, not period name.\r\n* Periods 13-16 are special periods. Label them as special periods and never\r\n  convert them to calendar months.\r\n* A positive or negative GL change shows direction, not favorability. Expense\r\n  and revenue accounts have different business interpretations.\r\n\r\n### Query efficiency and response safety\r\n\r\n* Filter the relevant MLV or fact before joining dimensions.\r\n* Aggregate before joining descriptive dimensions when practical.\r\n* Avoid joining all dimensions by default.\r\n* Use `TOP (100)` or fewer rows for detail unless the user requests more.\r\n* Return explicit columns and deterministic `ORDER BY`.\r\n* Do not expose `STCD1`, `RECORD_HASH`, `BATCH_RUN_ID`, `GOLD_BATCH_ID`,\r\n  `SOURCE_FILE_NAME`, or load timestamps.\r\n* Explain empty results and the filters used. Do not invent missing data.",
+  "dataSourceInstructions": "### General knowledge\n\nEvery monthly MLV retains `client`, `ledger` and `currency_local`;\nFinance Actual also retains `currency_group` and `currency_transaction`,\nand Vendor Spend retains `currency_group`. Atomic Finance uses\n`RCLNT/RLDNR` and `RHCUR/RKCUR/RTCUR/RWCUR`; atomic Planning uses\n`RCLNT/RLDNR/RHCUR`. Filter or group these scopes before monetary aggregation.\nExample monetary queries group and return client, ledger and the relevant\ncurrency rather than assume a single-valued source. Do not remove those\ngrouping keys when adapting examples. KSL's legacy Group label means global\ncurrency; no automatic currency conversion or ledger consolidation is implied.\n\nThis source is a schema-enabled Gold Lakehouse. Query only `dim`, `fct`, and\n`mlv`. Use two-part names such as `mlv.gl_balance_monthly`. Use T-SQL syntax.\nGenerate read-only `SELECT` statements. Never use `SELECT *`.\n\nAll records are synthetic demonstration data. Do not describe results as actual\nEskom performance. Amounts are decimals. `AMOUNT_LOCAL` is company-code\ncurrency (HSL/RHCUR), `AMOUNT_GROUP` is global currency (KSL/RKCUR),\n`AMOUNT_TRANSACTION` is balance transaction currency (TSL/RTCUR), and\n`AMOUNT_OTHER` is original transaction currency (WSL/RWCUR). Inspect available\ncurrencies; do not assume ZAR or infer a conversion from company names.\n\nDerive latest years and periods from the relevant fact or MLV. Do not use\n`MAX(dim.fiscal_period.FISCAL_YEAR)` because that dimension intentionally\nextends to 2035. Actual data currently ends before special periods, while plans\ncan include periods 13-16.\n\n### Source priority\n\n1. Use `mlv.plan_vs_actual_monthly` for actual-versus-plan summaries.\n2. Use `mlv.vendor_spend_monthly` for vendor summaries.\n3. Use `mlv.gl_balance_monthly` for debit, credit, net, and GL trends.\n4. Use `mlv.finance_actual_monthly` for reusable monthly actual summaries.\n5. Use `fct.finance_transaction` for document-line, cost-centre, reversal, or\n   customer detail.\n6. Use `fct.budget` for atomic budget, forecast, and FAGLFLEXP plan analysis.\n7. Join only the required `dim` tables for names and attributes.\n\n### Table descriptions\n\n* `fct.finance_transaction`: one ACDOCA ledger document line. Key:\n  `FINANCE_TRANSACTION_SK`. Important fields include `POSTING_DATE_SK`,\n  `FISCAL_PERIOD_KEY`, dimension surrogate keys, `RBUKRS`, `GJAHR`, `BELNR`,\n  `DOCLN`, `RLDNR`, `DRCRK`, `BLART`, `SGTXT`, currencies, signed amounts,\n  quantity, and `REVERSAL_DOCUMENT`.\n* `fct.budget`: one planning-source, scenario, entity, year, period, and\n  version row per client, ledger and local currency. Use `RCLNT`, `RLDNR`,\n  `RHCUR`, `PLAN_SOURCE`, `SCENARIO`, `PLAN_VERSION`, `PLAN_AMOUNT_LOCAL`,\n  and `FORECAST_AMOUNT_LOCAL`. BUDGET_FILE context is declared upstream;\n  do not infer client, ledger or currency defaults.\n* `mlv.finance_actual_monthly`: monthly signed actual amounts and line counts\n  by conformed Finance dimensions.\n* `mlv.gl_balance_monthly`: monthly debit, credit, signed net movement, and\n  line counts by company, division, profit centre, cost centre, and GL.\n* `mlv.vendor_spend_monthly`: monthly vendor activity by company, division,\n  vendor, and GL account.\n* `mlv.plan_vs_actual_monthly`: monthly actual, plan, and forecast rows.\n  Actual rows use scenario/version `ACTUAL`; plan rows keep F1-F5.\n* `dim.company`: company code, name, city, country, currency, chart of accounts.\n* `dim.gl_account`: GL code, English name, account group, balance-sheet flag,\n  and P&L type.\n* `dim.cost_center`: controlling area, cost centre, company, profit centre,\n  responsible person, category, and hierarchy.\n* `dim.profit_center`: controlling area, profit centre, company, hierarchy,\n  division code, and segment.\n* `dim.division`: division code and name.\n* `dim.vendor` and `dim.customer`: business partner codes and descriptive\n  attributes. Never return `STCD1`.\n* `dim.date`: contiguous posting-date calendar.\n* `dim.fiscal_period`: fiscal years and periods 0-16. Period 0 is technical\n  carry-forward. Join on `FISCAL_PERIOD_KEY`.\n\n### Relationships\n\nJoin facts and MLVs to dimensions on their surrogate keys:\n\n* `company_sk` or `COMPANY_SK` to `dim.company.DIMENSION_SK`\n* `gl_account_sk` or `GL_ACCOUNT_SK` to `dim.gl_account.DIMENSION_SK`\n* `cost_center_sk` or `COST_CENTER_SK` to `dim.cost_center.DIMENSION_SK`\n* `profit_center_sk` or `PROFIT_CENTER_SK` to\n  `dim.profit_center.DIMENSION_SK`\n* `division_sk` or `DIVISION_SK` to `dim.division.DIMENSION_SK`\n* `vendor_sk` or `VENDOR_SK` to `dim.vendor.DIMENSION_SK`\n* `CUSTOMER_SK` to `dim.customer.DIMENSION_SK`\n* `FISCAL_PERIOD_KEY` to `dim.fiscal_period.FISCAL_PERIOD_KEY`\n* `POSTING_DATE_SK` to `dim.date.DATE_SK`\n\nFacts already carry the correct SCD2 version key. Do not filter joined SCD2\ndimensions to `IS_CURRENT = 1`, because that can remove historical fact rows.\nWhen listing a master dimension without a fact, use `IS_CURRENT = 1`.\n\n### Business rules\n\n* Overall signed actuals balance to zero because accounting documents are\n  balanced. Do not use total signed amount as an activity KPI.\n* Gross GL activity is debit plus credit:\n  `SUM(debit_amount_local) + SUM(credit_amount_local)`.\n* Gross vendor activity is `SUM(ABS(spend_amount_local))`.\n* For F5 actual-versus-plan, conditionally aggregate actual rows and F5 plan\n  rows. Do not filter the full query to F5.\n* Forecast is populated only for `BUDGET_FILE` rows. Compare forecast against\n  `PLAN_AMOUNT_LOCAL` on those same rows.\n* For period trends, order by `fiscal_period_key`, not period name.\n  Partition window functions by client, ledger, currency and other\n  non-time grouping keys so prior values cannot come from another scope.\n* Period 0 is technical carry-forward; label it separately and do not infer\n  an opening/closing balance or ordinary monthly activity from it.\n* Periods 13-16 are special periods. Label them as special periods and never\n  convert them to calendar months.\n* A positive or negative GL change shows direction, not favorability. Expense\n  and revenue accounts have different business interpretations.\n\n### Query efficiency and response safety\n\n* Filter the relevant MLV or fact before joining dimensions.\n* Aggregate before joining descriptive dimensions when practical.\n* Avoid joining all dimensions by default.\n* Use `TOP (100)` or fewer rows for detail unless the user requests more.\n* Return explicit columns and deterministic `ORDER BY`.\n* For a requested image, return no more than 100 chart-ready aggregate rows,\n  one chronological sort key, and numeric values without formatting.\n* Do not expose `STCD1`, `RECORD_HASH`, `BATCH_RUN_ID`, `GOLD_BATCH_ID`,\n  `SOURCE_FILE_NAME`, or load timestamps.\n* Explain empty results and the filters used. Do not invent missing data.",
   "displayName": "lh_gld_finance",
   "type": "lakehouse_tables",
-  "userDescription": "\r\n`lh_gld_finance` is the governed Gold Lakehouse for synthetic SAP Finance\r\nanalysis. It contains atomic ACDOCA finance lines and planning facts, conformed\r\nSCD2 dimensions, and monthly Fabric Materialized Lake Views for actuals,\r\nvendor activity, GL movement, and plan-versus-actual analysis. Use it for\r\nquestions about companies, divisions, GL accounts, cost and profit centres,\r\nvendors, customers, posting dates, fiscal periods 1-16, budget, forecast, and\r\nF1-F5 plans. Prefer `mlv` objects for fast summaries and `fct` objects for\r\ndrill-down. All results are synthetic demonstration data, not actual Eskom\r\nperformance.",
+  "userDescription": "`lh_gld_finance` is the governed Gold Lakehouse for synthetic SAP Finance\nanalysis. It contains atomic ACDOCA finance lines and planning facts, conformed\nSCD2 dimensions, and monthly Fabric Materialized Lake Views for actuals,\nvendor activity, GL movement, and plan-versus-actual analysis. Use it for\nquestions about companies, divisions, GL accounts, cost and profit centres,\nvendors, customers, posting dates, fiscal periods 0-16, budget, forecast, and\nF1-F5 plans. Prefer `mlv` objects for fast summaries and `fct` objects for\ndrill-down. All results are synthetic demonstration data, not actual Eskom\nperformance.",
   "metadata": null,
   "elements": [
     {
@@ -763,7 +763,7 @@
                   "is_selected": true,
                   "display_name": "fiscal_period",
                   "type": "lakehouse_tables.table",
-                  "description": "Finance fiscal-period dimension with years and SAP periods 1-16, special-period flag, labels, and sortable fiscal-period key.",
+                  "description": "Finance fiscal-period dimension with years and SAP periods 0-16. Period 0 is technical carry-forward, 13-16 are special periods; neither is an ordinary calendar month.",
                   "children": [
                     {
                       "id": "394b83a7-8b26-4cfd-9a63-e107c8d80651",
@@ -1635,7 +1635,7 @@
                       "display_name": "RCLNT",
                       "type": "lakehouse_tables.column",
                       "data_type": "varchar",
-                      "description": null,
+                      "description": "SAP client. Preserve it in document identity, monetary grouping and cross-client filters.",
                       "children": []
                     },
                     {
@@ -1644,7 +1644,7 @@
                       "display_name": "RLDNR",
                       "type": "lakehouse_tables.column",
                       "data_type": "varchar",
-                      "description": null,
+                      "description": "SAP ledger. Preserve or explicitly filter it before monetary aggregation.",
                       "children": []
                     },
                     {
@@ -1680,7 +1680,7 @@
                       "display_name": "BELNR",
                       "type": "lakehouse_tables.column",
                       "data_type": "varchar",
-                      "description": "SAP accounting document number. It is not globally unique; combine with company code and fiscal year for document counts.",
+                      "description": "SAP accounting document number. Combine with client, company and fiscal year for document counts; ledger identifies its journal representation.",
                       "children": []
                     },
                     {
@@ -1788,7 +1788,7 @@
                       "display_name": "RHCUR",
                       "type": "lakehouse_tables.column",
                       "data_type": "varchar",
-                      "description": null,
+                      "description": "Company-code currency of HSL / AMOUNT_LOCAL.",
                       "children": []
                     },
                     {
@@ -1797,7 +1797,7 @@
                       "display_name": "RKCUR",
                       "type": "lakehouse_tables.column",
                       "data_type": "varchar",
-                      "description": null,
+                      "description": "Global currency of KSL / legacy AMOUNT_GROUP.",
                       "children": []
                     },
                     {
@@ -1806,7 +1806,7 @@
                       "display_name": "RWCUR",
                       "type": "lakehouse_tables.column",
                       "data_type": "varchar",
-                      "description": null,
+                      "description": "Original transaction currency of WSL / AMOUNT_OTHER, not TSL.",
                       "children": []
                     },
                     {
@@ -1842,7 +1842,7 @@
                       "display_name": "AMOUNT_GROUP",
                       "type": "lakehouse_tables.column",
                       "data_type": "decimal",
-                      "description": "Signed amount in group currency. Prefer for cross-company comparisons when group-currency analysis is requested.",
+                      "description": "Signed KSL amount in global currency RKCUR. Legacy Group naming does not imply a universal group/consolidation currency. Keep client, ledger and RKCUR scope explicit.",
                       "children": []
                     },
                     {
@@ -1851,7 +1851,7 @@
                       "display_name": "AMOUNT_TRANSACTION",
                       "type": "lakehouse_tables.column",
                       "data_type": "decimal",
-                      "description": null,
+                      "description": "Signed TSL amount in balance transaction currency RTCUR. RWCUR is not its currency.",
                       "children": []
                     },
                     {
@@ -1860,7 +1860,7 @@
                       "display_name": "AMOUNT_OTHER",
                       "type": "lakehouse_tables.column",
                       "data_type": "decimal",
-                      "description": null,
+                      "description": "Signed WSL amount in original transaction currency RWCUR.",
                       "children": []
                     },
                     {
@@ -1934,6 +1934,15 @@
                       "data_type": "datetime2",
                       "description": null,
                       "children": []
+                    },
+                    {
+                      "id": "2677d577-d862-597c-a34c-4b68a06f8c8f",
+                      "is_selected": true,
+                      "display_name": "RTCUR",
+                      "type": "lakehouse_tables.column",
+                      "data_type": "varchar",
+                      "description": "Balance transaction currency of TSL / AMOUNT_TRANSACTION. Never substitute RWCUR.",
+                      "children": []
                     }
                   ]
                 },
@@ -1942,7 +1951,7 @@
                   "is_selected": true,
                   "display_name": "budget",
                   "type": "lakehouse_tables.table",
-                  "description": "Atomic planning fact at source, scenario, company, GL, cost/profit centre, fiscal year, fiscal period, and plan-version grain. Includes BUDGET_FILE forecast rows and FAGLFLEXP F1-F5 plans.",
+                  "description": "Atomic planning fact by client, ledger, local currency, source, scenario, company, GL, cost/profit centre, year, period and version. Includes BUDGET_FILE forecasts and FAGLFLEXP F1-F5 plans.",
                   "children": [
                     {
                       "id": "45e36615-beec-467a-b2ad-db33e21893d0",
@@ -2168,6 +2177,33 @@
                       "data_type": "datetime2",
                       "description": null,
                       "children": []
+                    },
+                    {
+                      "id": "d83bd87c-d6d7-5dd4-a91b-7ca6ca74bde8",
+                      "is_selected": true,
+                      "display_name": "RCLNT",
+                      "type": "lakehouse_tables.column",
+                      "data_type": "varchar",
+                      "description": "SAP client supplied by the source or explicit budget financeContext. Never infer a customer default.",
+                      "children": []
+                    },
+                    {
+                      "id": "978f52dd-03fe-5f3f-82c0-b7cf8104b26d",
+                      "is_selected": true,
+                      "display_name": "RLDNR",
+                      "type": "lakehouse_tables.column",
+                      "data_type": "varchar",
+                      "description": "Ledger supplied by the source or explicit budget financeContext. Preserve it when comparing actuals and plans.",
+                      "children": []
+                    },
+                    {
+                      "id": "22a9b364-6837-5b7a-b504-abcd9a130411",
+                      "is_selected": true,
+                      "display_name": "RHCUR",
+                      "type": "lakehouse_tables.column",
+                      "data_type": "varchar",
+                      "description": "Local currency of plan and forecast amounts. Budget-file currency is resolved upstream from the company mapping.",
+                      "children": []
                     }
                   ]
                 }
@@ -2194,7 +2230,7 @@
                   "is_selected": true,
                   "display_name": "vendor_spend_monthly",
                   "type": "lakehouse_tables.table",
-                  "description": "Monthly signed vendor activity by company, division, vendor, GL account, fiscal year, and period. Use absolute values when calculating gross vendor activity.",
+                  "description": "Monthly vendor activity by client, ledger, local/global currency, company, division, vendor, GL, year and period. Preserve currency scope for amounts and local-currency averages.",
                   "children": [
                     {
                       "id": "76017359-42b9-4c88-83f5-5d796420de7d",
@@ -2303,6 +2339,42 @@
                       "data_type": "decimal",
                       "description": null,
                       "children": []
+                    },
+                    {
+                      "id": "5ce2479e-ee46-5ddc-a07c-f305d0ff6a70",
+                      "is_selected": true,
+                      "display_name": "client",
+                      "type": "lakehouse_tables.column",
+                      "data_type": "varchar",
+                      "description": "SAP client in the vendor serving grain.",
+                      "children": []
+                    },
+                    {
+                      "id": "dac27488-4cab-565b-92a6-4484cecf1fdc",
+                      "is_selected": true,
+                      "display_name": "ledger",
+                      "type": "lakehouse_tables.column",
+                      "data_type": "varchar",
+                      "description": "SAP ledger in the vendor serving grain.",
+                      "children": []
+                    },
+                    {
+                      "id": "af87082f-983a-5819-82ad-a1ee450f33a9",
+                      "is_selected": true,
+                      "display_name": "currency_local",
+                      "type": "lakehouse_tables.column",
+                      "data_type": "varchar",
+                      "description": "Currency of spend_amount_local and average_line_item_value. Preserve it in totals and weighted averages.",
+                      "children": []
+                    },
+                    {
+                      "id": "dac36c6b-05a8-5808-9114-4774b2ea0ba7",
+                      "is_selected": true,
+                      "display_name": "currency_group",
+                      "type": "lakehouse_tables.column",
+                      "data_type": "varchar",
+                      "description": "Global RKCUR currency of legacy spend_amount_group.",
+                      "children": []
                     }
                   ]
                 },
@@ -2311,7 +2383,7 @@
                   "is_selected": true,
                   "display_name": "gl_balance_monthly",
                   "type": "lakehouse_tables.table",
-                  "description": "Monthly debit, credit, signed net movement, line count, and document count by conformed Finance dimensions. Preferred for GL activity and trends.",
+                  "description": "Monthly debit, credit, signed net movement and counts by client, ledger, local currency and conformed Finance dimensions. Preserve monetary scope for GL activity and trends.",
                   "children": [
                     {
                       "id": "77a38818-76b0-452a-946c-b393fbf75fe2",
@@ -2429,6 +2501,33 @@
                       "data_type": "bigint",
                       "description": null,
                       "children": []
+                    },
+                    {
+                      "id": "e278234c-4e48-50a9-b3dc-99be0cb47b2f",
+                      "is_selected": true,
+                      "display_name": "client",
+                      "type": "lakehouse_tables.column",
+                      "data_type": "varchar",
+                      "description": "SAP client in the GL movement grain; preserve it in totals and window partitions.",
+                      "children": []
+                    },
+                    {
+                      "id": "08a1e6a3-cda1-5798-ba07-eed8a1a41b75",
+                      "is_selected": true,
+                      "display_name": "ledger",
+                      "type": "lakehouse_tables.column",
+                      "data_type": "varchar",
+                      "description": "SAP ledger in the GL movement grain; preserve it in totals and window partitions.",
+                      "children": []
+                    },
+                    {
+                      "id": "e1f77b7f-7378-50bf-88a4-2ea32c3d365b",
+                      "is_selected": true,
+                      "display_name": "currency_local",
+                      "type": "lakehouse_tables.column",
+                      "data_type": "varchar",
+                      "description": "Currency of debit, credit and net movement. Preserve it in sums and prior-period window partitions.",
+                      "children": []
                     }
                   ]
                 },
@@ -2437,7 +2536,7 @@
                   "is_selected": true,
                   "display_name": "finance_actual_monthly",
                   "type": "lakehouse_tables.table",
-                  "description": "Monthly signed actuals by company, division, profit centre, cost centre, GL account, fiscal year, and fiscal period. Prefer for reusable monthly actual summaries.",
+                  "description": "Monthly signed actuals by client, ledger, local/global/balance transaction currencies and conformed Finance dimensions, year and period. Preserve the relevant currency when aggregating.",
                   "children": [
                     {
                       "id": "d5637d3b-24fa-4a37-82c2-c45d57db8da4",
@@ -2564,6 +2663,51 @@
                       "data_type": "bigint",
                       "description": null,
                       "children": []
+                    },
+                    {
+                      "id": "e6acc182-8ef5-5dc1-8a6b-03eb594e274b",
+                      "is_selected": true,
+                      "display_name": "client",
+                      "type": "lakehouse_tables.column",
+                      "data_type": "varchar",
+                      "description": "SAP client in the monthly actual grain. Preserve or filter before monetary aggregation.",
+                      "children": []
+                    },
+                    {
+                      "id": "95269be1-e145-5a25-8890-5e1b650b1234",
+                      "is_selected": true,
+                      "display_name": "ledger",
+                      "type": "lakehouse_tables.column",
+                      "data_type": "varchar",
+                      "description": "SAP ledger in the monthly actual grain. Never silently sum multiple ledger representations.",
+                      "children": []
+                    },
+                    {
+                      "id": "abf1658c-feac-5e5c-a39b-48e624143cc5",
+                      "is_selected": true,
+                      "display_name": "currency_local",
+                      "type": "lakehouse_tables.column",
+                      "data_type": "varchar",
+                      "description": "RHCUR currency of actual_amount_local.",
+                      "children": []
+                    },
+                    {
+                      "id": "c67bfc93-a1b1-571c-8cf3-41963a28664a",
+                      "is_selected": true,
+                      "display_name": "currency_group",
+                      "type": "lakehouse_tables.column",
+                      "data_type": "varchar",
+                      "description": "RKCUR global currency of legacy actual_amount_group.",
+                      "children": []
+                    },
+                    {
+                      "id": "09f3a42b-e93d-51e6-849c-f9054a83220f",
+                      "is_selected": true,
+                      "display_name": "currency_transaction",
+                      "type": "lakehouse_tables.column",
+                      "data_type": "varchar",
+                      "description": "RTCUR balance transaction currency of actual_amount_transaction.",
+                      "children": []
                     }
                   ]
                 },
@@ -2572,7 +2716,7 @@
                   "is_selected": true,
                   "display_name": "plan_vs_actual_monthly",
                   "type": "lakehouse_tables.table",
-                  "description": "Monthly actual, budget, forecast, and F1-F5 plan rows at conformed Finance dimensional grain. Use conditional aggregation to retain actual rows when selecting a plan version.",
+                  "description": "Monthly actual, budget, forecast and F1-F5 plan rows by client, ledger, local currency and conformed Finance dimensions. Use conditional aggregation to retain actual rows when selecting a plan version.",
                   "children": [
                     {
                       "id": "7bb977eb-0476-4c04-9bcb-f72ce457dfb9",
@@ -2716,6 +2860,33 @@
                       "type": "lakehouse_tables.column",
                       "data_type": "decimal",
                       "description": null,
+                      "children": []
+                    },
+                    {
+                      "id": "a8a1d85c-86b6-5dd3-997a-b04e0f16419e",
+                      "is_selected": true,
+                      "display_name": "client",
+                      "type": "lakehouse_tables.column",
+                      "data_type": "varchar",
+                      "description": "SAP client shared by each comparable actual/plan group.",
+                      "children": []
+                    },
+                    {
+                      "id": "aa63c6c5-3aa1-58b4-976c-08eb5c1264b3",
+                      "is_selected": true,
+                      "display_name": "ledger",
+                      "type": "lakehouse_tables.column",
+                      "data_type": "varchar",
+                      "description": "SAP ledger shared by each comparable actual/plan group.",
+                      "children": []
+                    },
+                    {
+                      "id": "5a41d725-06b9-5feb-a3fd-8c86b9010400",
+                      "is_selected": true,
+                      "display_name": "currency_local",
+                      "type": "lakehouse_tables.column",
+                      "data_type": "varchar",
+                      "description": "Comparable company-code currency for actual, plan, forecast and variance amounts. No conversion is implied.",
                       "children": []
                     }
                   ]

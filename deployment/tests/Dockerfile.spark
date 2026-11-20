@@ -1,0 +1,14 @@
+FROM apache/spark:3.5.5 AS spark
+FROM python:3.11-slim-bookworm AS runtime
+
+COPY --from=spark /opt/java /opt/java
+COPY --from=spark /opt/spark /opt/spark
+RUN apt-get update && apt-get install --yes --no-install-recommends procps
+
+ENV JAVA_HOME=/opt/java/openjdk \
+    SPARK_HOME=/opt/spark \
+    PYSPARK_PYTHON=python3 \
+    PYTHONPATH=/workspace/artefacts/medallion:/workspace/deployment/src \
+    SPARK_LOCAL_IP=127.0.0.1
+WORKDIR /tmp/sap-validation
+ENTRYPOINT ["/opt/spark/bin/spark-submit"]

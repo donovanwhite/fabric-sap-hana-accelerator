@@ -1,8 +1,9 @@
 ## Actuals, debits, credits, and financial activity
 
 Use `mlv.gl_balance_monthly` for executive actual activity and GL movement.
-It is already grouped by company, division, profit centre, cost centre, GL,
-fiscal year, and fiscal period.
+It is already grouped by client, ledger, local currency, company, division,
+profit centre, cost centre, GL, fiscal year, and fiscal period. Preserve or
+explicitly filter those monetary scopes before aggregating further.
 
 ### Signed net movement
 
@@ -34,7 +35,10 @@ type.
 ## Plan, budget, forecast, and actual comparison
 
 Use `mlv.plan_vs_actual_monthly` for summary comparisons. Use `fct.budget` for
-atomic plan rows or forecast-versus-budget analysis.
+atomic plan rows or forecast-versus-budget analysis. Compare actual and plan
+within the same client, ledger and `currency_local`. Atomic planning uses
+`RCLNT`, `RLDNR`, `RHCUR`; its custom budget context is explicit upstream
+metadata, not a license to invent client or ledger defaults.
 
 ### Actual versus plan version
 
@@ -99,8 +103,11 @@ Use `mlv.gl_balance_monthly` for trends and
 
 ### Prior-period comparison
 
-Aggregate by `fiscal_period_key`, then use `LAG` ordered by that key. Calculate
-change as current net less prior net. Calculate percentage with
+Aggregate by client, ledger, local currency, requested reporting keys and
+`fiscal_period_key`. Use `LAG(...) OVER(PARTITION BY client,ledger,currency_local
+ORDER BY fiscal_period_key)` for one reporting series; include every additional
+non-time reporting key in `PARTITION BY` when returning multiple series.
+Calculate change as current net less prior net and use
 `NULLIF(ABS(prior_net),0)` to avoid division by zero.
 
 Use neutral directional language:
@@ -123,14 +130,15 @@ text, amount, currency, and only the dimensions requested by the user.
 ## Finance documents and reversals
 
 `fct.finance_transaction` is at ACDOCA document-line grain. The business
-document key is company code `RBUKRS`, fiscal year `GJAHR`, document number
-`BELNR`, ledger `RLDNR`, and line `DOCLN`.
+line key is client `RCLNT`, company code `RBUKRS`, fiscal year `GJAHR`,
+document number `BELNR`, ledger `RLDNR`, and line `DOCLN`.
 
 ### Document count
 
-Count distinct documents by the combination of company, fiscal year, and
-document number. Do not count only `BELNR`, because document numbers can repeat
-between company codes or fiscal years.
+Count distinct documents by client, company, fiscal year, and document number.
+Keep ledger scope explicit; distinguish counting documents from counting
+ledger-document representations. Do not count only `BELNR`, because numbers
+can repeat between clients, companies or fiscal years.
 
 ### Balanced documents
 
@@ -188,6 +196,9 @@ rows through 2035.
 
 ### Special periods
 
+Period 0 is technical carry-forward. Label it separately; it is not a normal
+month or, by itself, a validated opening/closing balance.
+
 Periods 13-16 are SAP special periods. They are not calendar months. Include
 them for plan or year-end special-period questions, but do not map them to
 month names.
@@ -200,15 +211,56 @@ financial reporting.
 
 ## Currency and amount selection
 
-Use local amounts for company-level analysis and clearly state company-code
-currency. Use group amounts for cross-company analysis when available. Do not
-sum transaction-currency amounts across different currencies without grouping
-by currency.
+Every monetary total must preserve one client, ledger and currency, or return
+separately labelled groups. MLV keys are `client`, `ledger`, `currency_local`;
+Finance Actual also has `currency_group` and `currency_transaction`, while
+Vendor Spend also has `currency_group`. Group its local-currency average by
+local currency too. Do not average averages without their line-count weights.
+
+Use local amounts with RHCUR and global amounts with RKCUR. A global amount is
+not automatically comparable across companies: verify the same currency and
+ledger context. No exchange-rate conversion or consolidation is performed by
+choosing a differently named measure.
 
 In document detail:
 
 * `RHCUR` identifies local currency.
-* `RKCUR` identifies group currency.
-* `RWCUR` identifies transaction or additional currency context.
-* `AMOUNT_LOCAL`, `AMOUNT_GROUP`, and `AMOUNT_TRANSACTION` must be labelled
-  with their amount basis.
+* `RKCUR` identifies global currency for legacy `AMOUNT_GROUP`.
+* `RTCUR` identifies balance transaction currency for `AMOUNT_TRANSACTION`.
+* `RWCUR` identifies original transaction currency for `AMOUNT_OTHER`.
+* State the amount basis and never substitute RWCUR for RTCUR.
+
+## Visualizations with Code Interpreter
+
+Use this topic when the user asks to plot, chart, graph, visualize, or render an
+image.
+
+### Required tool route
+
+Use Code Interpreter only. Execute Python with pandas and matplotlib. Return
+exactly one PNG image inline in the chat. Do not request PDF output. Do not
+create, publish, deploy, save, or export a report. Do not call a separate
+chart-rendering service.
+
+### Chart-ready data
+
+Keep the query result to 100 rows or fewer. Include an explicit chronological
+sort key. Return numeric values as numbers, not formatted strings. Use short,
+unique aliases and exclude technical metadata.
+
+### Dual-axis charts
+
+For Actual and Plan columns with a variance line:
+
+1. Sort the DataFrame by fiscal-period key.
+2. Scale amounts to billions in Python.
+3. Use side-by-side `ax.bar` calls for Actual and Plan.
+4. Create the percentage axis with `ax2 = ax.twinx()`.
+5. Use `ax2.plot` for variance percentage.
+6. Add one combined legend, axis units, filters, source, and synthetic label.
+7. Highlight the largest negative variance with one red annotation.
+8. Render and return the PNG inline without exporting a file or PDF.
+
+Use Eskom cyan `#00AEEF` for Actual, blue `#00529B` for Plan, orange
+`#F58220` for variance, red `#D22630` for the exception, and light background
+`#F4F7FA`.

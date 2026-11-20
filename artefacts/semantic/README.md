@@ -2,7 +2,7 @@
 title: SAP Finance semantic model relationship mapping
 description: Dimension-to-fact relationship specification for the Fabric Gold layer
 author: Data and AI Engineering
-ms.date: 2026-09-29
+ms.date: 2026-11-19
 ms.topic: reference
 keywords:
   - Microsoft Fabric
@@ -45,8 +45,8 @@ The complete row-level specification is available in
 |------------------------------|----------------------------|--------------------------------------------------------------------------|
 | `dim.company`                | Company                    | One SCD2 version per SAP client and company code                          |
 | `dim.gl_account`             | GL Account                 | One SCD2 version per SAP client, chart of accounts, and GL account        |
-| `dim.cost_center`            | Cost Center                | One SCD2 version per SAP client, controlling area, and cost center        |
-| `dim.profit_center`          | Profit Center              | One SCD2 version per SAP client, controlling area, and profit center      |
+| `dim.cost_center`            | Cost Center                | One SCD2 version per SAP client, controlling area, cost center, and source-validity slice |
+| `dim.profit_center`          | Profit Center              | One SCD2 version per SAP client, controlling area, profit center, and source-validity slice |
 | `dim.division`               | Division                   | One SCD2 version per division                                             |
 | `dim.vendor`                 | Vendor                     | One SCD2 version per SAP client and vendor                                |
 | `dim.customer`               | Customer                   | One SCD2 version per SAP client and customer                              |
@@ -58,6 +58,35 @@ The complete row-level specification is available in
 | `mlv.vendor_spend_monthly`   | Vendor Spend Monthly       | Monthly vendor spend by company, division, vendor, and GL account         |
 | `mlv.gl_balance_monthly`     | GL Balance Monthly         | Monthly GL movement by the available conformed Finance dimensions         |
 | `mlv.plan_vs_actual_monthly` | Plan vs Actual Monthly     | Monthly actual, budget, forecast, and plan by scenario and version         |
+
+Every monthly grain additionally retains SAP client, ledger and the currencies
+of its monetary measures. Those fields are exposed as additive semantic
+columns; existing table names, relationships, measures and Direct Lake on SQL
+bindings are retained.
+
+## Financial scope
+
+Monetary measures require one SAP client, one ledger and one corresponding
+currency in the current context. A single-valued synthetic profile continues
+to return its existing results. Mixed contexts raise an actionable DAX error
+instead of silently summing unlike currencies or multiple ledgers. Empty
+contexts retain their previous blank behavior.
+
+`Local Currency` identifies HSL/RHCUR. Legacy `Group Currency` and Group
+amount names identify KSL/RKCUR, whose SAP meaning is global currency.
+`Transaction Currency` now correctly identifies TSL/RTCUR, not RWCUR.
+`Original Transaction Currency` identifies WSL/RWCUR and the legacy Other
+amount. Prior-period movement keeps the same client, ledger and local currency.
+
+Planning facts retain additive `RCLNT`, `RLDNR` and `RHCUR`. The custom
+BUDGET_FILE projection obtains client/ledger from its explicit
+`financeContext` in the shared source contract and local currency from the
+as-of company dimension. The supplied `100`/`0L` context is a synthetic
+profile, never a customer default. Ambiguous or missing mappings fail.
+
+These are scope and transport guarantees, not currency conversion. Exchange
+rates, SAP currency-decimal presentation, account signs, carry-forward
+interpretation and consolidation policy remain Finance-owned.
 
 ## Relationship matrix
 
@@ -130,7 +159,7 @@ Power BI does not support composite relationship keys. The Gold layer now
 provides `dim.fiscal_period` at this grain:
 
 ```text
-Fiscal year + fiscal period (1 through 16)
+Fiscal year + fiscal period (0 through 16)
 ```
 
 The same integer key is present in Finance Transaction, Budget and Plan, and
@@ -151,7 +180,10 @@ The fiscal-period dimension includes:
 * `FISCAL_YEAR_PERIOD_LABEL`
 * `FISCAL_YEAR_PERIOD_SORT`
 
-Periods 13 through 16 are SAP special periods. They relate through Fiscal
+Period 0 preserves technical carry-forward records and is not a normal
+calendar month. The accelerator does not invent an opening/closing-balance
+calculation from those records. Periods 13 through 16 are SAP special periods.
+They relate through Fiscal
 Period rather than Date because no unique calendar date represents them.
 
 ## SCD2 handling

@@ -12,14 +12,17 @@ from .definitions import (
     OLD_GOLD_LAKEHOUSE_ID,
     OLD_SEMANTIC_MODEL_ID,
     OLD_WORKSPACE_ID,
+    bind_extraction_contract,
     data_agent_definition,
     directory_definition,
     notebook_definition,
     plan_definition,
     pipeline_definition,
     planner_database_definition,
+    read_extraction_contract,
     sql_database_definition,
     validate_deployable_definition,
+    validate_hana_contract,
 )
 from .fabric import FabricApiError, FabricClient, FabricItem
 
@@ -63,6 +66,8 @@ class DeploymentOptions:
     semantic_model_connection: str = SEMANTIC_MODEL_CONNECTION_NAME
     overwrite: bool = False
     dry_run: bool = False
+    hana_connection: str | None = None
+    extraction_contract: Path | None = None
 
 
 class AcceleratorDeployer:
@@ -82,6 +87,7 @@ class AcceleratorDeployer:
         self.workspace: dict[str, Any] = {}
         self.items: dict[str, FabricItem] = {}
         self.folders: dict[str, str] = {}
+        self.extraction_contract: dict[str, Any] = {}
 
     def deploy(self) -> dict[str, FabricItem]:
         """Run the complete deployment."""
@@ -109,14 +115,23 @@ class AcceleratorDeployer:
             workspace_id,
             capacity_id,
         )
-        sql_connection = self.client.resolve_oauth2_connection(
-            self.options.sql_connection, "FabricSql"
-        )
-        self.client.validate_connection_online(sql_connection)
+        hana_connection = None
+        sql_connection = None
+        if self.options.hana_connection:
+            hana_connection = self.client.resolve_hana_connection(self.options.hana_connection)
+            self.client.validate_connection_online(hana_connection)
+        else:
+            sql_connection = self.client.resolve_oauth2_connection(
+                self.options.sql_connection, "FabricSql"
+            )
+            self.client.validate_connection_online(sql_connection)
+        source_connection = hana_connection or sql_connection
+        if source_connection is None:
+            raise FabricApiError("No source connection was resolved")
         LOGGER.info(
-            "Validated source SQL OAuth2 connection: %s (%s)",
-            sql_connection["displayName"],
-            sql_connection["id"],
+            "Validated managed source connection: %s (%s)",
+            source_connection["displayName"],
+            source_connection["id"],
         )
         planning_sql_connection = self.client.resolve_oauth2_connection(
             self.options.planning_sql_connection, "FabricSql"
@@ -176,6 +191,10 @@ class AcceleratorDeployer:
                 "creationMode": "new",
             },
         )
+        self.extraction_contract = bind_extraction_contract(
+            self.extraction_contract, source_connection,
+            workspace_id=workspace_id, sql_database_id=sql_database.id,
+        )
         gold_properties = self.client.request(
             "GET",
             f"/workspaces/{workspace_id}/lakehouses/{gold.id}",
@@ -198,6 +217,7 @@ class AcceleratorDeployer:
                 default_lakehouse_id=default_item.id,
                 default_lakehouse_name=default_item.display_name,
                 known_lakehouse_ids=[bronze.id, gold.id],
+                extraction_contract=self.extraction_contract,
             )
             notebook = self._ensure_definition_item(
                 workspace_id,
@@ -286,14 +306,16 @@ class AcceleratorDeployer:
             route="dataPipelines",
             item_type="DataPipeline",
             display_name="pl_full_medallion_sap_finance",
-            description="Full-snapshot SAP Finance medallion pipeline",
+            description="Hybrid read-only SAP Finance medallion pipeline",
             definition=pipeline_definition(
                 self.artifacts_root / "pipeline" / "pipeline-content.json",
                 workspace_id=workspace_id,
                 notebook_ids=notebook_ids,
                 sql_database_id=sql_database.id,
                 bronze_lakehouse_id=bronze.id,
-                sql_connection_id=sql_connection["id"],
+                sql_connection_id=sql_connection["id"] if sql_connection else "",
+                hana_connection_id=hana_connection["id"] if hana_connection else None,
+                extraction_contract=self.extraction_contract,
             ),
         )
         self._validate_inventory(workspace_id)
@@ -303,6 +325,9 @@ class AcceleratorDeployer:
         required = [
             self.artifacts_root / "pipeline" / "pipeline-content.json",
             self.artifacts_root / "sap" / "schema.sql",
+            self.artifacts_root / "sap" / "factory-copy-contract.json",
+            self.artifacts_root / "medallion" / "sap_extraction.py",
+            self.artifacts_root / "medallion" / "sap_runtime.py",
             self.artifacts_root / "semantic" / "SAP Finance.SemanticModel",
             self.artifacts_root / "semantic" / "SAP Finance Executive Insights.Report",
             self.artifacts_root / "dataAgent" / "dataAgent.md",
@@ -325,6 +350,15 @@ class AcceleratorDeployer:
             raise FileNotFoundError(
                 "Required deployment assets are missing: " + ", ".join(missing)
             )
+        self.extraction_contract = read_extraction_contract(
+            self.options.extraction_contract
+            or self.artifacts_root / "sap" / "factory-copy-contract.json",
+            artifacts_root=self.artifacts_root,
+        )
+        if self.options.hana_connection:
+            if self.options.extraction_contract is None:
+                raise ValueError("--hana-connection requires --extraction-contract for the verified SAP release")
+            validate_hana_contract(self.extraction_contract)
 
     def _expected_items(self) -> dict[tuple[str, str], str]:
         expected = {

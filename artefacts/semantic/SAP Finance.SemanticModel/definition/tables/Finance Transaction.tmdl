@@ -2,22 +2,22 @@
 table 'Finance Transaction'
 
 	/// Signed local-currency amount across finance lines.
-	measure 'Total Local Amount' = SUM('Finance Transaction'[Local Amount])
+	measure 'Total Local Amount' = IF(ISEMPTY('Finance Transaction') || (HASONEVALUE('Finance Transaction'[SAP Client]) && HASONEVALUE('Finance Transaction'[Ledger]) && HASONEVALUE('Finance Transaction'[Local Currency])), SUM('Finance Transaction'[Local Amount]), ERROR("Select one SAP client, ledger and local currency."))
 		formatString: #,##0.00
 		displayFolder: Amounts
 
-	/// Signed group-currency amount across finance lines.
-	measure 'Total Group Amount' = SUM('Finance Transaction'[Group Amount])
+	/// Signed global-currency amount (KSL/RKCUR); the legacy Group label is retained.
+	measure 'Total Group Amount' = IF(ISEMPTY('Finance Transaction') || (HASONEVALUE('Finance Transaction'[SAP Client]) && HASONEVALUE('Finance Transaction'[Ledger]) && HASONEVALUE('Finance Transaction'[Group Currency])), SUM('Finance Transaction'[Group Amount]), ERROR("Select one SAP client, ledger and global currency."))
 		formatString: #,##0.00
 		displayFolder: Amounts
 
 	/// Signed transaction-currency amount across finance lines.
-	measure 'Total Transaction Amount' = SUM('Finance Transaction'[Transaction Amount])
+	measure 'Total Transaction Amount' = IF(ISEMPTY('Finance Transaction') || (HASONEVALUE('Finance Transaction'[SAP Client]) && HASONEVALUE('Finance Transaction'[Ledger]) && HASONEVALUE('Finance Transaction'[Transaction Currency])), SUM('Finance Transaction'[Transaction Amount]), ERROR("Select one SAP client, ledger and balance transaction currency."))
 		formatString: #,##0.00
 		displayFolder: Amounts
 
-	/// Signed additional-currency amount across finance lines.
-	measure 'Total Other Amount' = SUM('Finance Transaction'[Other Amount])
+	/// Signed original transaction-currency amount (WSL/RWCUR).
+	measure 'Total Other Amount' = IF(ISEMPTY('Finance Transaction') || (HASONEVALUE('Finance Transaction'[SAP Client]) && HASONEVALUE('Finance Transaction'[Ledger]) && HASONEVALUE('Finance Transaction'[Original Transaction Currency])), SUM('Finance Transaction'[Other Amount]), ERROR("Select one SAP client, ledger and original transaction currency."))
 		formatString: #,##0.00
 		displayFolder: Amounts
 
@@ -32,9 +32,15 @@ table 'Finance Transaction'
 		displayFolder: Counts
 
 	/// Distinct SAP finance documents by company, fiscal year, and document number.
-	measure 'Finance Document Count' = COUNTROWS(SUMMARIZE('Finance Transaction', 'Finance Transaction'[Company Code], 'Finance Transaction'[Fiscal Year], 'Finance Transaction'[Document Number]))
+	measure 'Finance Document Count' = COUNTROWS(SUMMARIZE('Finance Transaction', 'Finance Transaction'[SAP Client], 'Finance Transaction'[Company Code], 'Finance Transaction'[Fiscal Year], 'Finance Transaction'[Document Number]))
 		formatString: #,##0
 		displayFolder: Counts
+
+	/// SAP client containing the accounting document.
+	column 'SAP Client'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: RCLNT
 
 	column 'Posting Date Key'
 		dataType: int64
@@ -161,14 +167,20 @@ table 'Finance Transaction'
 		summarizeBy: none
 		sourceColumn: RHCUR
 
-	/// Group Currency from the Gold Finance Transaction entity.
+	/// Global currency for KSL; not universally a specific group currency.
 	column 'Group Currency'
 		dataType: string
 		summarizeBy: none
 		sourceColumn: RKCUR
 
-	/// Transaction Currency from the Gold Finance Transaction entity.
+	/// Balance transaction currency for TSL.
 	column 'Transaction Currency'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: RTCUR
+
+	/// Original transaction currency for WSL.
+	column 'Original Transaction Currency'
 		dataType: string
 		summarizeBy: none
 		sourceColumn: RWCUR

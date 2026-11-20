@@ -6,21 +6,22 @@ often SAPABAP1, but it is environment-specific. These projections deliberately
 use SAP table and column names that match the SAP_FIN_DB simulator.
 
 Business data is selected directly from the underlying HANA tables. These
-templates are full projections because the selected tables do not provide one
-complete, reliable change timestamp or deletion feed. Do not assume the legacy
-demo LAST_MODIFIED_UTC column exists in SAP.
+templates show business projections, not complete change feeds.
+sap_extraction.py applies validated mode-specific predicates and source
+controls. Verify selected fields against the installed release. Do not assume
+the legacy demo LAST_MODIFIED_UTC column exists in SAP.
 */
 
 SELECT
     "RCLNT","RLDNR","RBUKRS","GJAHR","POPER","BELNR","DOCLN","RACCT",
     "RCNTR","PRCTR","KOKRS","LIFNR","KUNNR","BUDAT","BLDAT","DRCRK",
-    "BLART","AWTYP","SGTXT","RHCUR","RKCUR","RWCUR","HSL","KSL","TSL",
+    "BLART","AWTYP","SGTXT","RHCUR","RKCUR","RTCUR","RWCUR","HSL","KSL","TSL",
     "WSL","MSL"
 FROM "<SAP_SCHEMA>"."ACDOCA";
 
 SELECT
     "MANDT","BUKRS","GJAHR","BELNR","MONAT","BUDAT","BLDAT","BLART",
-    "STBLG","BKTXT"
+    "CPUDT","CPUTM","STBLG","STJAH","BSTAT","BKTXT"
 FROM "<SAP_SCHEMA>"."BKPF";
 
 SELECT "MANDT","BUKRS","BUTXT","ORT01","LAND1","WAERS","KTOPL"
@@ -32,7 +33,7 @@ SELECT
 FROM "<SAP_SCHEMA>"."CSKS";
 
 SELECT
-    "MANDT","KOKRS","PRCTR","BUKRS","VERAK","KHINR","SEGMENT","DATAB",
+    "MANDT","KOKRS","PRCTR","VERAK","KHINR","SEGMENT","DATAB",
     "DATBI"
 FROM "<SAP_SCHEMA>"."CEPC";
 
@@ -52,12 +53,13 @@ SELECT
     "STCD1"
 FROM "<SAP_SCHEMA>"."KNA1";
 
-SELECT
-    "RCLNT","RLDNR","RBUKRS","RYEAR","RACCT","PRCTR","KOKRS","VERSN",
-    "CURTYPE","RHCUR","TSL01","TSL02","TSL03","TSL04","TSL05","TSL06",
-    "TSL07","TSL08","TSL09","TSL10","TSL11","TSL12","TSL13","TSL14",
-    "TSL15","TSL16"
-FROM "<SAP_SCHEMA>"."FAGLFLEXP";
+/*
+FAGLFLEXP is deliberately not represented by the simulator's simplified
+RACCT/PRCTR/VERSN query here. Native DDIC keys include
+RCLNT, RYEAR, DOCNR, RLDNR, RBUKRS, DOCLN, DOCCT, RPMAX.
+Its planning fields and currencies require a release-verified source mapping.
+CEPC.BUKRS is likewise a simulator convenience, not a generic native field.
+*/
 
 /*
 The following objects are custom demo contracts, not standard SAP tables.

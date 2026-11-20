@@ -4,19 +4,23 @@ from __future__ import annotations
 
 import base64
 import json
+import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from fabric_sap_deployer.definitions import (
     LEGACY_ENVIRONMENT_IDS,
     OLD_SEMANTIC_MODEL_ID,
     OLD_WORKSPACE_ID,
+    bind_extraction_contract,
     data_agent_definition,
     directory_definition,
     notebook_definition,
     plan_definition,
     pipeline_definition,
     planner_database_definition,
+    read_extraction_contract,
     sql_database_definition,
     validate_deployable_definition,
 )
@@ -61,11 +65,14 @@ class DefinitionTests(unittest.TestCase):
             "04_Gold_Atomic_Finance_Fact",
             "05_Gold_Budget_Fact",
         ]:
-            notebook = json.loads(
-                (ARTEFACTS / "medallion" / f"{name}.ipynb").read_text(
-                    encoding="utf-8"
-                )
+            definition = notebook_definition(
+                ARTEFACTS / "medallion" / f"{name}.ipynb",
+                workspace_id="11111111-1111-1111-1111-111111111111",
+                default_lakehouse_id="22222222-2222-2222-2222-222222222222",
+                default_lakehouse_name="test",
+                known_lakehouse_ids=[],
             )
+            notebook = json.loads(decode_part(definition, "artifact.content.ipynb"))
             source = "\n".join(
                 line
                 for cell in notebook["cells"]
@@ -147,23 +154,116 @@ class DefinitionTests(unittest.TestCase):
             ]),
             13,
         )
-        copy_activity = pipeline["properties"]["activities"][1][
-            "typeProperties"
-        ]["activities"][0]
+        loop = next(
+            activity for activity in pipeline["properties"]["activities"]
+            if activity["type"] == "ForEach"
+        )
+        copy_activity = loop["typeProperties"]["activities"][0]
         self.assertNotIn(
             "externalReferences",
             copy_activity["typeProperties"]["sink"]["datasetSettings"],
         )
-        self.assertNotIn(
-            "batchCount",
-            pipeline["properties"]["activities"][1]["typeProperties"],
+        self.assertFalse(loop["typeProperties"]["isSequential"])
+        self.assertEqual(
+            loop["typeProperties"]["batchCount"]["value"],
+            "@pipeline().parameters.p_max_parallelism",
         )
+        self.assertEqual(copy_activity["typeProperties"]["parallelCopies"], 1)
         self.assertEqual(
             copy_activity["typeProperties"]["source"]["sqlReaderQuery"]["value"],
-            "@concat('SELECT ',item().columnList,' FROM ',item().sourceObject)",
+            "@item().source_query",
         )
         for notebook_id in notebook_ids.values():
             self.assertIn(notebook_id, serialized)
+
+    def test_hana_binding_requires_verified_release_and_managed_connection(self) -> None:
+        contract = json.loads(
+            (ARTEFACTS / "sap" / "factory-copy-contract.json").read_text()
+        )
+        arguments = {
+            "workspace_id": "workspace",
+            "notebook_ids": {
+                path.stem: path.stem + "-id"
+                for path in (ARTEFACTS / "medallion").glob("*.ipynb")
+            },
+            "sql_database_id": "unused-simulator",
+            "bronze_lakehouse_id": "bronze",
+            "sql_connection_id": "unused-sql",
+            "hana_connection_id": "managed-hana",
+            "extraction_contract": contract,
+        }
+        with self.assertRaisesRegex(ValueError, "validatedRelease"):
+            pipeline_definition(ARTEFACTS / "pipeline" / "pipeline-content.json", **arguments)
+        contract["validatedRelease"] = "UNIT-TEST-ONLY"
+        for table in contract["tables"]:
+            table["schemaVerified"] = True
+            client = "RCLNT" if "RCLNT" in table["columns"] else "MANDT"
+            if client in table["columns"]:
+                table["filters"] = {client: ["100"]}
+        definition = pipeline_definition(
+            ARTEFACTS / "pipeline" / "pipeline-content.json", **arguments
+        )
+        output = decode_part(definition, "pipeline-content.json").decode()
+        self.assertIn("SapHanaSource", output)
+        self.assertIn("managed-hana", output)
+        self.assertNotIn("unused-simulator", output)
+        self.assertNotIn("unused-sql", output)
+        self.assertNotIn("__SQL_", output)
+
+    def test_deployed_control_notebooks_embed_executable_shared_runtime(self) -> None:
+        for name in [
+            "00_Setup_and_Namespace_Validation", "01_Bronze_CSV_Inventory",
+            "02_Bronze_CSV_to_Silver_Delta", "08_Bronze_Snapshot_Cleanup",
+        ]:
+            definition = notebook_definition(
+                ARTEFACTS / "medallion" / f"{name}.ipynb",
+                workspace_id="workspace", default_lakehouse_id="bronze",
+                default_lakehouse_name="bronze", known_lakehouse_ids=[],
+            )
+            notebook = json.loads(decode_part(definition, "artifact.content.ipynb"))
+            self.assertEqual(notebook["cells"][1]["metadata"]["tags"], ["parameters"])
+            embedded = notebook["cells"][2]
+            self.assertEqual(embedded["metadata"]["tags"], ["embedded-sap-runtime"])
+            namespace = {}
+            exec(compile("".join(embedded["source"]), name, "exec"), namespace)
+            self.assertEqual(len(namespace["_SAP_EXTRACTION_CONFIG"]["tables"]), 13)
+
+    def test_source_binding_does_not_share_checkpoints_or_embed_endpoint_details(self) -> None:
+        contract = json.loads((ARTEFACTS / "sap/factory-copy-contract.json").read_text())
+        connection = {
+            "id": "managed-connection",
+            "connectionDetails": {
+                "type": "SapHana",
+                "parameters": [{"name": "server", "value": "hana.example.invalid:30015"}],
+            },
+            "credentialDetails": {"credentialType": "Basic"},
+        }
+        bound = bind_extraction_contract(
+            contract, connection, workspace_id="workspace", sql_database_id="simulator",
+        )
+        identity = bound["sourceIdentity"]
+        self.assertNotIn("hana.example.invalid", json.dumps(identity))
+        self.assertNotIn("workspaceId", identity)
+        self.assertNotIn("databaseId", identity)
+        connection["connectionDetails"]["parameters"][0]["value"] = "other.example.invalid:30015"
+        other = bind_extraction_contract(
+            contract, connection, workspace_id="workspace", sql_database_id="simulator",
+        )
+        self.assertNotEqual(identity, other["sourceIdentity"])
+
+    def test_external_contract_loads_from_installed_cli_without_relative_asset_guessing(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "production-contract.json"
+            path.write_text(
+                (ARTEFACTS / "sap/factory-copy-contract.json").read_text(),
+                encoding="utf-8",
+            )
+            with patch(
+                "fabric_sap_deployer.definitions.__file__",
+                str(Path(temporary) / "site-packages/fabric_sap_deployer/definitions.py"),
+            ):
+                contract = read_extraction_contract(path, artifacts_root=ARTEFACTS)
+            self.assertEqual(contract["sourceIdentity"]["name"], "SAP_FIN_DB")
 
     def test_plan_definition_rebinds_semantic_model(self) -> None:
         definition = plan_definition(

@@ -2,12 +2,12 @@
 table 'Budget and Plan'
 
 	/// Total budget or plan amount in local currency.
-	measure 'Total Plan Amount' = SUM('Budget and Plan'[Plan Amount Local])
+	measure 'Total Plan Amount' = IF(ISEMPTY('Budget and Plan') || (HASONEVALUE('Budget and Plan'[SAP Client]) && HASONEVALUE('Budget and Plan'[Ledger]) && HASONEVALUE('Budget and Plan'[Local Currency])), SUM('Budget and Plan'[Plan Amount Local]), ERROR("Select one SAP client, ledger and planning currency."))
 		formatString: #,##0.00
 		displayFolder: Planning
 
 	/// Total forecast amount in local currency.
-	measure 'Total Forecast Amount' = SUM('Budget and Plan'[Forecast Amount Local])
+	measure 'Total Forecast Amount' = IF(ISEMPTY('Budget and Plan') || (HASONEVALUE('Budget and Plan'[SAP Client]) && HASONEVALUE('Budget and Plan'[Ledger]) && HASONEVALUE('Budget and Plan'[Local Currency])), SUM('Budget and Plan'[Forecast Amount Local]), ERROR("Select one SAP client, ledger and planning currency."))
 		formatString: #,##0.00
 		displayFolder: Planning
 
@@ -30,6 +30,24 @@ table 'Budget and Plan'
 	measure 'Planning Row Count' = COUNTROWS('Budget and Plan')
 		formatString: #,##0
 		displayFolder: Counts
+
+	/// SAP client declared by the source or explicit planning context.
+	column 'SAP Client'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: RCLNT
+
+	/// Ledger declared by the source or explicit planning context.
+	column 'Ledger'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: RLDNR
+
+	/// Company-code currency of the planning amount.
+	column 'Local Currency'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: RHCUR
 
 	column 'Fiscal Period Key'
 		dataType: int64

@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import base64
 import csv
+import hashlib
 import json
 import re
+import runpy
 import uuid
 from copy import deepcopy
 from pathlib import Path
@@ -132,6 +134,7 @@ def notebook_definition(
     default_lakehouse_id: str,
     default_lakehouse_name: str,
     known_lakehouse_ids: list[str],
+    extraction_contract: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Create a rebound notebook definition."""
     notebook = json.loads(path.read_text(encoding="utf-8"))
@@ -144,6 +147,51 @@ def notebook_definition(
             {"id": lakehouse_id} for lakehouse_id in known_lakehouse_ids
         ],
     }
+    if path.stem in {
+        "00_Setup_and_Namespace_Validation", "01_Bronze_CSV_Inventory",
+        "02_Bronze_CSV_to_Silver_Delta", "08_Bronze_Snapshot_Cleanup",
+    }:
+        contract = extraction_contract or read_extraction_contract(
+            path.parent.parent / "sap" / "factory-copy-contract.json"
+        )
+        source = ["import json, sys, types\n"]
+        for module_name in ("sap_extraction", "sap_runtime"):
+            content = (path.parent / f"{module_name}.py").read_text(encoding="utf-8")
+            source.extend([
+                f"_module = types.ModuleType({module_name!r})\n",
+                f"sys.modules[{module_name!r}] = _module\n",
+                f"exec(compile({content!r}, {module_name + '.py'!r}, 'exec'), _module.__dict__)\n",
+            ])
+        source.append(
+            f"_SAP_EXTRACTION_CONFIG = json.loads({json_text(contract)!r})\n"
+        )
+        index = next(
+            (i + 1 for i, cell in enumerate(notebook["cells"])
+             if "parameters" in cell.get("metadata", {}).get("tags", [])),
+            1,
+        )
+        notebook["cells"].insert(index, {
+            "cell_type": "code", "execution_count": None,
+            "metadata": {"tags": ["embedded-sap-runtime"]}, "outputs": [],
+            "source": source,
+        })
+    elif path.stem in PIPELINE_NOTEBOOKS.values():
+        contract = extraction_contract or read_extraction_contract(
+            path.parent.parent / "sap" / "factory-copy-contract.json"
+        )
+        index = next(
+            (i + 1 for i, cell in enumerate(notebook["cells"])
+             if "parameters" in cell.get("metadata", {}).get("tags", [])),
+            1,
+        )
+        notebook["cells"].insert(index, {
+            "cell_type": "code", "execution_count": None,
+            "metadata": {"tags": ["embedded-sap-contract"]}, "outputs": [],
+            "source": [
+                "import json\n",
+                f"_SAP_EXTRACTION_CONFIG = json.loads({json_text(contract)!r})\n",
+            ],
+        })
     return {
         "format": "ipynb",
         "parts": [part("artifact.content.ipynb", json_text(notebook))],
@@ -551,42 +599,104 @@ def pipeline_definition(
     sql_database_id: str,
     bronze_lakehouse_id: str,
     sql_connection_id: str,
+    hana_connection_id: str | None = None,
+    extraction_contract: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Rebind the pipeline to target item and connection identifiers."""
     payload = json.loads(path.read_text(encoding="utf-8"))
-    activities = payload["properties"]["activities"]
-    for activity in activities:
-        properties = activity.get("typeProperties", {})
-        if activity["name"] == "fe_copy_sap_full_snapshot":
-            copy_activity = properties["activities"][0]
-            source_settings = copy_activity["typeProperties"]["source"][
-                "datasetSettings"
-            ]["connectionSettings"]["properties"]["typeProperties"]
-            source_settings["workspaceId"] = workspace_id
-            source_settings["artifactId"] = sql_database_id
-            copy_activity["typeProperties"]["source"]["datasetSettings"][
-                "connectionSettings"
-            ]["properties"]["externalReferences"][
-                "connection"
-            ] = sql_connection_id
-            sink_settings = copy_activity["typeProperties"]["sink"][
-                "datasetSettings"
-            ]["linkedService"]["properties"]["typeProperties"]
-            sink_settings["workspaceId"] = workspace_id
-            sink_settings["artifactId"] = bronze_lakehouse_id
-            copy_activity["typeProperties"]["sink"]["datasetSettings"].pop(
-                "externalReferences", None
-            )
-        if activity["type"] == "TridentNotebook":
-            notebook_name = PIPELINE_NOTEBOOKS.get(activity["name"])
-            if notebook_name is None:
-                raise ValueError(
-                    f"No notebook binding is configured for pipeline activity "
-                    f"{activity['name']!r}"
-                )
-            properties["notebookId"] = notebook_ids[notebook_name]
-            properties["workspaceId"] = workspace_id
+    contract = extraction_contract or read_extraction_contract(
+        path.parent.parent / "sap" / "factory-copy-contract.json"
+    )
+    payload["properties"]["parameters"]["p_table_config"]["defaultValue"] = contract["tables"]
+    payload["properties"]["parameters"]["p_max_parallelism"]["defaultValue"] = contract["maxConcurrency"]
+
+    if hana_connection_id:
+        validate_hana_contract(contract)
+
+    def bind(activities: list[dict[str, Any]]) -> None:
+        for activity in activities:
+            properties = activity.get("typeProperties", {})
+            if activity["type"] == "ForEach":
+                bind(properties["activities"])
+            if activity["type"] == "Copy":
+                source = properties["source"]
+                if hana_connection_id:
+                    properties["source"] = {
+                        "type": "SapHanaSource",
+                        "query": source["sqlReaderQuery"],
+                        "partitionOption": "None",
+                        "datasetSettings": {
+                            "annotations": [], "type": "SapHanaTable", "schema": [],
+                            "typeProperties": {},
+                            "externalReferences": {"connection": hana_connection_id},
+                        },
+                    }
+                else:
+                    settings = source["datasetSettings"]["connectionSettings"]["properties"]
+                    settings["typeProperties"] = {
+                        "workspaceId": workspace_id, "artifactId": sql_database_id,
+                    }
+                    settings["externalReferences"]["connection"] = sql_connection_id
+                sink_settings = properties["sink"]["datasetSettings"][
+                    "linkedService"
+                ]["properties"]["typeProperties"]
+                sink_settings["workspaceId"] = workspace_id
+                sink_settings["artifactId"] = bronze_lakehouse_id
+                properties["sink"]["datasetSettings"].pop("externalReferences", None)
+            if activity["type"] == "TridentNotebook":
+                notebook_name = PIPELINE_NOTEBOOKS.get(activity["name"])
+                if notebook_name is None:
+                    raise ValueError(
+                        f"No notebook binding is configured for pipeline activity "
+                        f"{activity['name']!r}"
+                    )
+                properties["notebookId"] = notebook_ids[notebook_name]
+                properties["workspaceId"] = workspace_id
+    bind(payload["properties"]["activities"])
     return {"parts": [part("pipeline-content.json", json_text(payload))]}
+
+
+def read_extraction_contract(
+    path: Path, *, artifacts_root: Path | None = None,
+) -> dict[str, Any]:
+    """Validate the one shared contract before generating any Fabric assets."""
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    root = artifacts_root or path.parent.parent
+    module = runpy.run_path(str(root / "medallion" / "sap_extraction.py"))
+    module["ExtractionConfig"].from_dict(payload)
+    return payload
+
+
+def validate_hana_contract(contract: dict[str, Any]) -> None:
+    """Prevent accidentally publishing simulator projections against customer SAP."""
+    if not contract.get("validatedRelease"):
+        raise ValueError("HANA deployment requires an explicit validatedRelease")
+    for table in contract["tables"]:
+        if table.get("schemaVerified") is not True:
+            raise ValueError(
+                f"HANA deployment requires release-verified source contracts: {table['name']}"
+            )
+        client = "RCLNT" if "RCLNT" in table["columns"] else "MANDT"
+        if client in table["columns"] and not table.get("filters", {}).get(client):
+            raise ValueError(f"{table['name']}: explicit HANA client filters are required")
+
+
+def bind_extraction_contract(
+    contract: dict[str, Any], connection: dict[str, Any], *,
+    workspace_id: str, sql_database_id: str,
+) -> dict[str, Any]:
+    """Pin checkpoints to managed source identity without embedding endpoints."""
+    bound = deepcopy(contract)
+    details = connection["connectionDetails"]
+    identity = {
+        "kind": details["type"], "connectionId": connection["id"],
+        "definitionHash": hashlib.sha256(json_text(details).encode()).hexdigest(),
+    }
+    if details["type"] == "FabricSql":
+        identity.update(workspaceId=workspace_id, databaseId=sql_database_id)
+    bound["sourceIdentity"] = identity
+    return bound
+
 
 
 def _sql_literal(value: str, width: int | None = None) -> str:
@@ -748,6 +858,67 @@ def extract_marker(text: str, marker: str) -> str:
     return match.group(1).strip()
 
 
+def _data_agent_schema_descriptions(text: str) -> dict[tuple[str, ...], str]:
+    descriptions = {}
+    for line in extract_marker(text, "SCHEMA_DESCRIPTIONS").splitlines():
+        match = re.fullmatch(r"\| `([^`]+)` \| (.+) \|", line)
+        if match is None:
+            continue
+        path = tuple(match[1].split(" > "))
+        description = match[2].strip()
+        if path in descriptions:
+            raise ValueError(f"Duplicate Data Agent schema description: {match[1]}")
+        if not description or len(description) > 500:
+            raise ValueError(f"Data Agent schema description exceeds its limit: {match[1]}")
+        descriptions[path] = description
+    if not descriptions:
+        raise ValueError("Data Agent schema descriptions are empty")
+    return descriptions
+
+
+def _apply_data_agent_schema_descriptions(
+    payload: dict[str, Any], descriptions: dict[tuple[str, ...], str],
+) -> None:
+    elements: dict[tuple[str, ...], dict[str, Any]] = {}
+
+    def visit(nodes: list[dict[str, Any]], parent: tuple[str, ...] = ()) -> None:
+        for node in nodes:
+            path = parent
+            if node["type"] == "lakehouse_tables.column":
+                path += ("Columns",)
+            path += (node["display_name"],)
+            if path in elements:
+                raise ValueError(f"Duplicate Data Agent schema path: {' > '.join(path)}")
+            elements[path] = node
+            visit(node.get("children", []), path)
+
+    visit(payload["elements"])
+    additive_strings = {
+        "RCLNT", "RLDNR", "RHCUR", "RTCUR",
+        "client", "ledger", "currency_local", "currency_group", "currency_transaction",
+    }
+    for path, description in descriptions.items():
+        if path not in elements:
+            table = elements.get(path[:4])
+            if (
+                len(path) != 6 or path[4] != "Columns" or path[5] not in additive_strings
+                or table is None or table["type"] != "lakehouse_tables.table"
+            ):
+                raise ValueError(f"Unknown Data Agent schema description path: {' > '.join(path)}")
+            column = {
+                "id": str(uuid.uuid5(uuid.NAMESPACE_URL, "sap-finance:" + ".".join(path))),
+                "is_selected": table["is_selected"],
+                "display_name": path[5],
+                "type": "lakehouse_tables.column",
+                "data_type": "varchar",
+                "description": None,
+                "children": [],
+            }
+            table["children"].append(column)
+            elements[path] = column
+        elements[path]["description"] = description
+
+
 def data_agent_definition(
     markdown_path: Path,
     *,
@@ -759,12 +930,24 @@ def data_agent_definition(
     instructions = extract_marker(text, "AGENT_INSTRUCTIONS")
     source_description = extract_marker(text, "SOURCE_DESCRIPTION")
     source_instructions = extract_marker(text, "SOURCE_INSTRUCTIONS")
+    topics = extract_marker(text, "TOPICS") + "\n"
+    descriptions = _data_agent_schema_descriptions(text)
+    for name, value, limit in (
+        ("instructions", instructions, 15000),
+        ("source description", source_description, 800),
+        ("source instructions", source_instructions, 15000),
+        ("topics", topics, 1000000),
+    ):
+        if len(value) > limit:
+            raise ValueError(f"Data Agent {name} exceeds {limit} characters")
     few_shots: list[dict[str, str]] = []
     for index in range(1, 11):
         token = f"{index:02d}"
         question = extract_marker(text, f"EXAMPLE_{token}_QUESTION")
         query = extract_marker(text, f"EXAMPLE_{token}_SQL")
         query = re.sub(r"^```sql\s*|\s*```$", "", query, flags=re.DOTALL).strip()
+        if len(question) > 500 or len(query) > 1000:
+            raise ValueError(f"Data Agent example {index} exceeds its question/query limit")
         few_shots.append(
             {
                 "id": str(uuid.uuid5(uuid.NAMESPACE_URL, f"sap-finance-{index}")),
@@ -780,6 +963,9 @@ def data_agent_definition(
         relative = path.relative_to(template_root).as_posix()
         if relative == ".platform":
             continue
+        if relative.endswith("/topics/topics.md"):
+            definition_parts.append(part(relative, topics))
+            continue
         if path.suffix.lower() != ".json":
             definition_parts.append(part(relative, path.read_bytes()))
             continue
@@ -792,6 +978,7 @@ def data_agent_definition(
             payload["displayName"] = "lh_gld_finance"
             payload["userDescription"] = source_description
             payload["dataSourceInstructions"] = source_instructions
+            _apply_data_agent_schema_descriptions(payload, descriptions)
         elif relative.endswith("/fewshots.json"):
             payload["fewShots"] = deepcopy(few_shots)
         definition_parts.append(part(relative, json_text(payload)))

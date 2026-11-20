@@ -40,6 +40,14 @@ def create_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--hana-connection",
+        help="Existing SAP HANA gateway connection name or ID; otherwise use the SQL simulator",
+    )
+    parser.add_argument(
+        "--extraction-contract", type=Path,
+        help="Validated extraction metadata JSON; required for a real HANA source",
+    )
+    parser.add_argument(
         "--planning-sql-connection",
         default="conn_sap_finance_planning_sql",
         help=(
@@ -101,6 +109,8 @@ def main() -> int:
                 semantic_model_connection=args.semantic_model_connection,
                 overwrite=args.overwrite,
                 dry_run=args.dry_run,
+                hana_connection=args.hana_connection,
+                extraction_contract=args.extraction_contract,
             ),
         )
         items = deployer.deploy()

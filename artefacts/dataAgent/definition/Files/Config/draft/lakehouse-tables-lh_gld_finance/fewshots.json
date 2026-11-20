@@ -2,54 +2,54 @@
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/dataAgent/definition/fewShots/1.0.0/schema.json",
   "fewShots": [
     {
-      "id": "4e7da276-b6d9-4deb-8b4e-873553d0c47a",
+      "id": "35b4d0d8-8868-5cad-9cc5-f8caa2cf40fa",
       "question": "What are gross debit, credit, and total financial activity by company for the latest actual fiscal year?",
-      "query": "WITH y AS (\r\n  SELECT MAX(fiscal_year) fy FROM mlv.gl_balance_monthly\r\n)\r\nSELECT c.BUKRS, c.BUTXT, g.fiscal_year,\r\n       SUM(g.debit_amount_local) debit_local,\r\n       SUM(g.credit_amount_local) credit_local,\r\n       SUM(g.debit_amount_local)+SUM(g.credit_amount_local) gross_local\r\nFROM mlv.gl_balance_monthly g\r\nJOIN dim.company c ON c.DIMENSION_SK=g.company_sk\r\nCROSS JOIN y\r\nWHERE g.fiscal_year=y.fy\r\nGROUP BY c.BUKRS,c.BUTXT,g.fiscal_year\r\nORDER BY gross_local DESC;"
+      "query": "WITH y AS (\n  SELECT MAX(fiscal_year) fy FROM mlv.gl_balance_monthly\n)\nSELECT g.client,g.ledger,g.currency_local,c.BUKRS,c.BUTXT,g.fiscal_year,\n       SUM(g.debit_amount_local) debit_local,\n       SUM(g.credit_amount_local) credit_local,\n       SUM(g.debit_amount_local)+SUM(g.credit_amount_local) gross_local\nFROM mlv.gl_balance_monthly g\nJOIN dim.company c ON c.DIMENSION_SK=g.company_sk\nCROSS JOIN y\nWHERE g.fiscal_year=y.fy\nGROUP BY g.client,g.ledger,g.currency_local,c.BUKRS,c.BUTXT,g.fiscal_year\nORDER BY gross_local DESC,g.client,g.ledger,g.currency_local,c.BUKRS;"
     },
     {
-      "id": "6852ec17-2d54-4c69-a40d-041794f74ac6",
+      "id": "62f393ad-6d49-5305-aaf4-97f7aaa533cd",
       "question": "Which GL accounts have the largest actual-versus-F5-plan variance in the latest fiscal year?",
-      "query": "WITH y AS (\r\n  SELECT MAX(fiscal_year) fy FROM mlv.plan_vs_actual_monthly\r\n)\r\nSELECT TOP (20) gl.SAKNR,gl.TXT50,p.fiscal_year,\r\n  SUM(CASE WHEN p.scenario='ACTUAL' THEN p.actual_amount_local ELSE 0 END) actual,\r\n  SUM(CASE WHEN p.scenario='PLAN' AND p.plan_version='F5'\r\n      THEN p.plan_amount_local ELSE 0 END) plan_f5,\r\n  SUM(CASE WHEN p.scenario='ACTUAL' THEN p.actual_amount_local ELSE 0 END)-\r\n  SUM(CASE WHEN p.scenario='PLAN' AND p.plan_version='F5'\r\n      THEN p.plan_amount_local ELSE 0 END) variance\r\nFROM mlv.plan_vs_actual_monthly p\r\nJOIN dim.gl_account gl ON gl.DIMENSION_SK=p.gl_account_sk\r\nCROSS JOIN y\r\nWHERE p.fiscal_year=y.fy\r\nGROUP BY gl.SAKNR,gl.TXT50,p.fiscal_year\r\nORDER BY ABS(SUM(CASE WHEN p.scenario='ACTUAL' THEN p.actual_amount_local ELSE 0 END)-\r\n  SUM(CASE WHEN p.scenario='PLAN' AND p.plan_version='F5'\r\n      THEN p.plan_amount_local ELSE 0 END)) DESC;"
+      "query": "WITH m AS (\nSELECT p.client,p.ledger,p.currency_local,gl.SAKNR,gl.TXT50,p.fiscal_year,\n  SUM(CASE WHEN p.scenario='ACTUAL' THEN p.actual_amount_local ELSE 0 END) actual,\n  SUM(CASE WHEN p.scenario='PLAN' AND p.plan_version='F5'\n      THEN p.plan_amount_local ELSE 0 END) plan_f5\nFROM mlv.plan_vs_actual_monthly p\nJOIN dim.gl_account gl ON gl.DIMENSION_SK=p.gl_account_sk\nWHERE p.fiscal_year=(SELECT MAX(fiscal_year) FROM mlv.plan_vs_actual_monthly)\nGROUP BY p.client,p.ledger,p.currency_local,gl.SAKNR,gl.TXT50,p.fiscal_year\n)\nSELECT TOP (20) client,ledger,currency_local,SAKNR,TXT50,fiscal_year,\n       actual,plan_f5,actual-plan_f5 variance\nFROM m\nORDER BY ABS(actual-plan_f5) DESC,client,ledger,currency_local,SAKNR;"
     },
     {
-      "id": "73d1a71d-815f-4f56-a3f4-55acfbefede7",
+      "id": "90fb03c9-fdad-57b5-b37f-44702d740b84",
       "question": "How does the latest forecast compare with the matching budget by company?",
-      "query": "WITH y AS (\r\n  SELECT MAX(FISCAL_YEAR) fy\r\n  FROM fct.budget WHERE PLAN_SOURCE='BUDGET_FILE'\r\n)\r\nSELECT c.BUKRS,c.BUTXT,b.FISCAL_YEAR,\r\n       SUM(b.PLAN_AMOUNT_LOCAL) budget_local,\r\n       SUM(b.FORECAST_AMOUNT_LOCAL) forecast_local,\r\n       SUM(b.FORECAST_AMOUNT_LOCAL)-SUM(b.PLAN_AMOUNT_LOCAL) variance_local\r\nFROM fct.budget b\r\nJOIN dim.company c ON c.DIMENSION_SK=b.COMPANY_SK\r\nCROSS JOIN y\r\nWHERE b.PLAN_SOURCE='BUDGET_FILE' AND b.FISCAL_YEAR=y.fy\r\nGROUP BY c.BUKRS,c.BUTXT,b.FISCAL_YEAR\r\nORDER BY ABS(SUM(b.FORECAST_AMOUNT_LOCAL)-SUM(b.PLAN_AMOUNT_LOCAL)) DESC;"
+      "query": "WITH y AS (\n  SELECT MAX(FISCAL_YEAR) fy\n  FROM fct.budget WHERE PLAN_SOURCE='BUDGET_FILE'\n)\nSELECT b.RCLNT client,b.RLDNR ledger,b.RHCUR currency_local,\n       c.BUKRS,c.BUTXT,b.FISCAL_YEAR,\n       SUM(b.PLAN_AMOUNT_LOCAL) budget_local,\n       SUM(b.FORECAST_AMOUNT_LOCAL) forecast_local,\n       SUM(b.FORECAST_AMOUNT_LOCAL)-SUM(b.PLAN_AMOUNT_LOCAL) variance_local\nFROM fct.budget b\nJOIN dim.company c ON c.DIMENSION_SK=b.COMPANY_SK\nCROSS JOIN y\nWHERE b.PLAN_SOURCE='BUDGET_FILE' AND b.FISCAL_YEAR=y.fy\n  AND b.FORECAST_AMOUNT_LOCAL IS NOT NULL\nGROUP BY b.RCLNT,b.RLDNR,b.RHCUR,c.BUKRS,c.BUTXT,b.FISCAL_YEAR\nORDER BY ABS(SUM(b.FORECAST_AMOUNT_LOCAL)-SUM(b.PLAN_AMOUNT_LOCAL)) DESC,\n         b.RCLNT,b.RLDNR,b.RHCUR,c.BUKRS;"
     },
     {
-      "id": "84f6e2e2-48b4-4795-96b7-fd98ac82b940",
+      "id": "c4fbe65d-daa9-521f-8f30-7569d0db2f6a",
       "question": "Who are the top vendors by gross local-currency activity in the latest fiscal year?",
-      "query": "WITH y AS (\r\n  SELECT MAX(fiscal_year) fy FROM mlv.vendor_spend_monthly\r\n)\r\nSELECT TOP (15) v.LIFNR,v.NAME1,s.fiscal_year,\r\n       SUM(ABS(s.spend_amount_local)) gross_vendor_activity_local,\r\n       SUM(s.line_item_count) line_count\r\nFROM mlv.vendor_spend_monthly s\r\nJOIN dim.vendor v ON v.DIMENSION_SK=s.vendor_sk\r\nCROSS JOIN y\r\nWHERE s.fiscal_year=y.fy\r\nGROUP BY v.LIFNR,v.NAME1,s.fiscal_year\r\nORDER BY gross_vendor_activity_local DESC;"
+      "query": "WITH y AS (\n  SELECT MAX(fiscal_year) fy FROM mlv.vendor_spend_monthly\n)\nSELECT TOP (15) s.client,s.ledger,s.currency_local,v.LIFNR,v.NAME1,s.fiscal_year,\n       SUM(ABS(s.spend_amount_local)) gross_vendor_activity_local,\n       SUM(s.line_item_count) line_count\nFROM mlv.vendor_spend_monthly s\nJOIN dim.vendor v ON v.DIMENSION_SK=s.vendor_sk\nCROSS JOIN y\nWHERE s.fiscal_year=y.fy\nGROUP BY s.client,s.ledger,s.currency_local,v.LIFNR,v.NAME1,s.fiscal_year\nORDER BY gross_vendor_activity_local DESC,s.client,s.ledger,s.currency_local,v.LIFNR;"
     },
     {
-      "id": "2ab8cae7-6728-411b-8540-4392b90850d4",
+      "id": "c098e141-928b-5a3b-8aa0-fd405d866682",
       "question": "Show monthly net movement and period-over-period change for GL account 400200 in the latest fiscal year.",
-      "query": "WITH m AS (\r\n  SELECT g.fiscal_period_key,g.fiscal_year,g.fiscal_period,\r\n         SUM(g.net_movement_local) net_local\r\n  FROM mlv.gl_balance_monthly g\r\n  JOIN dim.gl_account a ON a.DIMENSION_SK=g.gl_account_sk\r\n  WHERE a.SAKNR='400200'\r\n    AND g.fiscal_year=(SELECT MAX(fiscal_year) FROM mlv.gl_balance_monthly)\r\n  GROUP BY g.fiscal_period_key,g.fiscal_year,g.fiscal_period\r\n), c AS (\r\n  SELECT *,LAG(net_local) OVER(ORDER BY fiscal_period_key) prior_local FROM m\r\n)\r\nSELECT fiscal_year,fiscal_period,net_local,prior_local,\r\n       net_local-prior_local movement_change,\r\n       (net_local-prior_local)/NULLIF(ABS(prior_local),0) change_pct\r\nFROM c ORDER BY fiscal_period_key;"
+      "query": "WITH m AS (\n  SELECT g.client,g.ledger,g.currency_local,g.fiscal_period_key,\n         g.fiscal_year,g.fiscal_period,\n         SUM(g.net_movement_local) net_local\n  FROM mlv.gl_balance_monthly g\n  JOIN dim.gl_account a ON a.DIMENSION_SK=g.gl_account_sk\n  WHERE a.SAKNR='0000400200'\n    AND g.fiscal_year=(SELECT MAX(fiscal_year) FROM mlv.gl_balance_monthly)\n  GROUP BY g.client,g.ledger,g.currency_local,g.fiscal_period_key,\n           g.fiscal_year,g.fiscal_period\n), c AS (\n  SELECT client,ledger,currency_local,fiscal_period_key,fiscal_year,\n         fiscal_period,net_local,\n         LAG(net_local) OVER(PARTITION BY client,ledger,currency_local\n                            ORDER BY fiscal_period_key) prior_local FROM m\n)\nSELECT client,ledger,currency_local,fiscal_year,fiscal_period,net_local,prior_local,\n       net_local-prior_local movement_change,\n       (net_local-prior_local)/NULLIF(ABS(prior_local),0) change_pct\nFROM c ORDER BY client,ledger,currency_local,fiscal_period_key;"
     },
     {
-      "id": "ab891532-0933-428b-b2ba-4c1721d254b3",
+      "id": "a44e74ed-85c3-54f2-8e5d-b602b70d81d7",
       "question": "Show recent finance document lines with GL, cost centre, profit centre, vendor, and customer context.",
-      "query": "SELECT TOP (25) f.RBUKRS,f.GJAHR,f.BELNR,f.DOCLN,f.RLDNR,f.BLART,\r\n       f.SGTXT,f.AMOUNT_LOCAL,f.RHCUR,a.SAKNR,a.TXT50,\r\n       cc.KOSTL,pc.PRCTR,v.LIFNR,cu.KUNNR\r\nFROM fct.finance_transaction f\r\nJOIN dim.gl_account a ON a.DIMENSION_SK=f.GL_ACCOUNT_SK\r\nLEFT JOIN dim.cost_center cc ON cc.DIMENSION_SK=f.COST_CENTER_SK\r\nLEFT JOIN dim.profit_center pc ON pc.DIMENSION_SK=f.PROFIT_CENTER_SK\r\nLEFT JOIN dim.vendor v ON v.DIMENSION_SK=f.VENDOR_SK\r\nLEFT JOIN dim.customer cu ON cu.DIMENSION_SK=f.CUSTOMER_SK\r\nWHERE f.GJAHR=(SELECT MAX(GJAHR) FROM fct.finance_transaction)\r\nORDER BY f.BELNR DESC,f.DOCLN;"
+      "query": "SELECT TOP (25) f.RCLNT,f.RBUKRS,f.GJAHR,f.BELNR,f.DOCLN,f.RLDNR,f.BLART,\n       f.SGTXT,f.AMOUNT_LOCAL,f.RHCUR,a.SAKNR,a.TXT50,\n       cc.KOSTL,pc.PRCTR,v.LIFNR,cu.KUNNR\nFROM fct.finance_transaction f\nJOIN dim.gl_account a ON a.DIMENSION_SK=f.GL_ACCOUNT_SK\nLEFT JOIN dim.cost_center cc ON cc.DIMENSION_SK=f.COST_CENTER_SK\nLEFT JOIN dim.profit_center pc ON pc.DIMENSION_SK=f.PROFIT_CENTER_SK\nLEFT JOIN dim.vendor v ON v.DIMENSION_SK=f.VENDOR_SK\nLEFT JOIN dim.customer cu ON cu.DIMENSION_SK=f.CUSTOMER_SK\nWHERE f.GJAHR=(SELECT MAX(GJAHR) FROM fct.finance_transaction)\nORDER BY f.GJAHR DESC,f.RCLNT,f.RBUKRS,f.RLDNR,f.BELNR DESC,f.DOCLN;"
     },
     {
-      "id": "fbf06da2-95b8-4a0a-9e86-f858a0a79c39",
+      "id": "4b7c2f80-42f2-5542-afb7-735f64f0937e",
       "question": "Which cost centres have the highest gross local-currency activity in the latest fiscal year?",
-      "query": "WITH y AS (\r\n  SELECT MAX(GJAHR) fy FROM fct.finance_transaction\r\n)\r\nSELECT TOP (15) c.KOSTL,c.VERAK,c.KHINR,\r\n       SUM(ABS(f.AMOUNT_LOCAL)) gross_activity_local,\r\n       COUNT_BIG(*) line_count\r\nFROM fct.finance_transaction f\r\nJOIN dim.cost_center c ON c.DIMENSION_SK=f.COST_CENTER_SK\r\nCROSS JOIN y\r\nWHERE f.GJAHR=y.fy\r\nGROUP BY c.KOSTL,c.VERAK,c.KHINR\r\nORDER BY gross_activity_local DESC;"
+      "query": "WITH y AS (\n  SELECT MAX(GJAHR) fy FROM fct.finance_transaction\n)\nSELECT TOP (15) f.RCLNT client,f.RLDNR ledger,f.RHCUR currency_local,\n       c.KOSTL,c.VERAK,c.KHINR,\n       SUM(ABS(f.AMOUNT_LOCAL)) gross_activity_local,\n       COUNT_BIG(*) line_count\nFROM fct.finance_transaction f\nJOIN dim.cost_center c ON c.DIMENSION_SK=f.COST_CENTER_SK\nCROSS JOIN y\nWHERE f.GJAHR=y.fy\nGROUP BY f.RCLNT,f.RLDNR,f.RHCUR,c.KOSTL,c.VERAK,c.KHINR\nORDER BY gross_activity_local DESC,f.RCLNT,f.RLDNR,f.RHCUR,c.KOSTL;"
     },
     {
-      "id": "163a95da-f0bf-4539-ae4e-976353fe8837",
+      "id": "5b906513-91b1-5116-b214-d98752410a2e",
       "question": "What is the F5 plan amount for SAP special periods 13 through 16 in the latest plan year?",
-      "query": "WITH y AS (\r\n  SELECT MAX(FISCAL_YEAR) fy FROM fct.budget WHERE PLAN_VERSION='F5'\r\n)\r\nSELECT b.FISCAL_YEAR,b.FISCAL_PERIOD,\r\n       SUM(b.PLAN_AMOUNT_LOCAL) f5_plan_amount_local\r\nFROM fct.budget b\r\nCROSS JOIN y\r\nWHERE b.PLAN_VERSION='F5' AND b.FISCAL_YEAR=y.fy\r\n  AND b.FISCAL_PERIOD BETWEEN 13 AND 16\r\nGROUP BY b.FISCAL_YEAR,b.FISCAL_PERIOD\r\nORDER BY b.FISCAL_PERIOD;"
+      "query": "WITH y AS (\n  SELECT MAX(FISCAL_YEAR) fy FROM fct.budget WHERE PLAN_VERSION='F5'\n)\nSELECT b.RCLNT client,b.RLDNR ledger,b.RHCUR currency_local,\n       b.FISCAL_YEAR,b.FISCAL_PERIOD,\n       SUM(b.PLAN_AMOUNT_LOCAL) f5_plan_amount_local\nFROM fct.budget b\nCROSS JOIN y\nWHERE b.PLAN_VERSION='F5' AND b.FISCAL_YEAR=y.fy\n  AND b.FISCAL_PERIOD BETWEEN 13 AND 16\nGROUP BY b.RCLNT,b.RLDNR,b.RHCUR,b.FISCAL_YEAR,b.FISCAL_PERIOD\nORDER BY b.RCLNT,b.RLDNR,b.RHCUR,b.FISCAL_PERIOD;"
     },
     {
-      "id": "b7c1e676-db9e-4200-a69a-af5e304bff7d",
+      "id": "dd0a8c0c-6463-5ac7-82ca-cf72f8a38b7c",
       "question": "Which recent SAP documents are marked as reversals, and what is their signed net local amount?",
-      "query": "SELECT TOP (20) f.RBUKRS,f.GJAHR,f.BELNR,f.REVERSAL_DOCUMENT,\r\n       COUNT_BIG(*) line_count,SUM(f.AMOUNT_LOCAL) net_amount_local\r\nFROM fct.finance_transaction f\r\nWHERE f.REVERSAL_DOCUMENT IS NOT NULL\r\nGROUP BY f.RBUKRS,f.GJAHR,f.BELNR,f.REVERSAL_DOCUMENT\r\nORDER BY f.GJAHR DESC,f.BELNR DESC;"
+      "query": "SELECT TOP (20) f.RCLNT client,f.RLDNR ledger,f.RHCUR currency_local,\n       f.RBUKRS,f.GJAHR,f.BELNR,f.REVERSAL_DOCUMENT,\n       COUNT_BIG(*) line_count,SUM(f.AMOUNT_LOCAL) net_amount_local\nFROM fct.finance_transaction f\nWHERE f.REVERSAL_DOCUMENT IS NOT NULL\nGROUP BY f.RCLNT,f.RLDNR,f.RHCUR,f.RBUKRS,f.GJAHR,f.BELNR,f.REVERSAL_DOCUMENT\nORDER BY f.GJAHR DESC,f.RCLNT,f.RBUKRS,f.RLDNR,f.RHCUR,f.BELNR DESC;"
     },
     {
-      "id": "83799bb7-1b4f-474a-80fa-3ac258933bc1",
+      "id": "02d66df8-e261-5444-9273-727611219832",
       "question": "List the current SAP companies, currencies, countries, and charts of accounts.",
-      "query": "SELECT BUKRS,BUTXT,ORT01,LAND1,WAERS,KTOPL\r\nFROM dim.company\r\nWHERE IS_CURRENT=1\r\nORDER BY BUKRS;"
+      "query": "SELECT MANDT,BUKRS,BUTXT,ORT01,LAND1,WAERS,KTOPL\nFROM dim.company\nWHERE IS_CURRENT=1\nORDER BY MANDT,BUKRS;"
     }
   ]
 }

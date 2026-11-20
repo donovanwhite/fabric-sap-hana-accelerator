@@ -2,22 +2,22 @@
 table 'Vendor Spend Monthly'
 
 	/// Vendor spend in local currency.
-	measure 'Vendor Spend Local Amount' = SUM('Vendor Spend Monthly'[Spend Amount Local])
+	measure 'Vendor Spend Local Amount' = IF(ISEMPTY('Vendor Spend Monthly') || (HASONEVALUE('Vendor Spend Monthly'[SAP Client]) && HASONEVALUE('Vendor Spend Monthly'[Ledger]) && HASONEVALUE('Vendor Spend Monthly'[Local Currency])), SUM('Vendor Spend Monthly'[Spend Amount Local]), ERROR("Select one SAP client, ledger and local currency."))
 		formatString: #,##0.00
 		displayFolder: Amounts
 
 	/// Gross vendor activity using the absolute value of each vendor aggregate row.
-	measure 'Gross Vendor Spend Local' = SUMX('Vendor Spend Monthly', ABS('Vendor Spend Monthly'[Spend Amount Local]))
+	measure 'Gross Vendor Spend Local' = IF(ISEMPTY('Vendor Spend Monthly') || (HASONEVALUE('Vendor Spend Monthly'[SAP Client]) && HASONEVALUE('Vendor Spend Monthly'[Ledger]) && HASONEVALUE('Vendor Spend Monthly'[Local Currency])), SUMX('Vendor Spend Monthly', ABS('Vendor Spend Monthly'[Spend Amount Local])), ERROR("Select one SAP client, ledger and local currency."))
 		formatString: #,##0.00
 		displayFolder: Amounts
 
-	/// Vendor spend in group currency.
-	measure 'Vendor Spend Group Amount' = SUM('Vendor Spend Monthly'[Spend Amount Group])
+	/// Vendor spend in global currency; the legacy Group label is retained.
+	measure 'Vendor Spend Group Amount' = IF(ISEMPTY('Vendor Spend Monthly') || (HASONEVALUE('Vendor Spend Monthly'[SAP Client]) && HASONEVALUE('Vendor Spend Monthly'[Ledger]) && HASONEVALUE('Vendor Spend Monthly'[Group Currency])), SUM('Vendor Spend Monthly'[Spend Amount Group]), ERROR("Select one SAP client, ledger and global currency."))
 		formatString: #,##0.00
 		displayFolder: Amounts
 
 	/// Gross vendor activity in group currency using absolute aggregate values.
-	measure 'Gross Vendor Spend Group' = SUMX('Vendor Spend Monthly', ABS('Vendor Spend Monthly'[Spend Amount Group]))
+	measure 'Gross Vendor Spend Group' = IF(ISEMPTY('Vendor Spend Monthly') || (HASONEVALUE('Vendor Spend Monthly'[SAP Client]) && HASONEVALUE('Vendor Spend Monthly'[Ledger]) && HASONEVALUE('Vendor Spend Monthly'[Group Currency])), SUMX('Vendor Spend Monthly', ABS('Vendor Spend Monthly'[Spend Amount Group])), ERROR("Select one SAP client, ledger and global currency."))
 		formatString: #,##0.00
 		displayFolder: Amounts
 
@@ -27,9 +27,33 @@ table 'Vendor Spend Monthly'
 		displayFolder: Counts
 
 	/// Weighted average absolute vendor line value across the selected aggregate rows.
-	measure 'Weighted Average Vendor Line Value' = DIVIDE(SUMX('Vendor Spend Monthly', 'Vendor Spend Monthly'[Average Line Item Value] * 'Vendor Spend Monthly'[Line Item Count]), SUM('Vendor Spend Monthly'[Line Item Count]))
+	measure 'Weighted Average Vendor Line Value' = IF(ISEMPTY('Vendor Spend Monthly') || (HASONEVALUE('Vendor Spend Monthly'[SAP Client]) && HASONEVALUE('Vendor Spend Monthly'[Ledger]) && HASONEVALUE('Vendor Spend Monthly'[Local Currency])), DIVIDE(SUMX('Vendor Spend Monthly', 'Vendor Spend Monthly'[Average Line Item Value] * 'Vendor Spend Monthly'[Line Item Count]), SUM('Vendor Spend Monthly'[Line Item Count])), ERROR("Select one SAP client, ledger and local currency."))
 		formatString: #,##0.00
 		displayFolder: Amounts
+
+	/// SAP client in the serving grain.
+	column 'SAP Client'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: client
+
+	/// Ledger in the serving grain.
+	column 'Ledger'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: ledger
+
+	/// Currency of local vendor amounts.
+	column 'Local Currency'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: currency_local
+
+	/// Global currency of group-labelled vendor amounts.
+	column 'Group Currency'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: currency_group
 
 	column 'Company Key'
 		dataType: string

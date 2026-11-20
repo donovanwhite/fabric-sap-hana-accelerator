@@ -188,10 +188,10 @@ class FabricClient:
             "GET", f"/workspaces/{matches[0]['id']}", expected=(200,)
         ).json()
 
-    def resolve_oauth2_connection(
+    def _resolve_connection(
         self, name_or_id: str, connection_type: str
     ) -> dict[str, Any]:
-        """Resolve one OAuth2 cloud connection by name and type."""
+        """Resolve exactly one existing managed connection without credentials."""
         try:
             connection_id = str(uuid.UUID(name_or_id))
         except ValueError:
@@ -204,10 +204,10 @@ class FabricClient:
             ]
             if len(matches) != 1:
                 raise FabricApiError(
-                    f"Expected one {connection_type} OAuth2 connection named "
+                    f"Expected one {connection_type} connection named "
                     f"{name_or_id!r}; found {len(matches)}. Create and authorize "
                     "the connection in Fabric, or pass its ID with "
-                    "--sql-connection."
+                    "the appropriate connection option."
                 )
             connection_id = matches[0]["id"]
         connection = self.request(
@@ -219,6 +219,13 @@ class FabricClient:
                 f"Connection {name_or_id!r} must have type {connection_type}; "
                 f"found {actual_type or 'no connection type'}"
             )
+        return connection
+
+    def resolve_oauth2_connection(
+        self, name_or_id: str, connection_type: str
+    ) -> dict[str, Any]:
+        """Resolve one OAuth2 cloud connection by name and type."""
+        connection = self._resolve_connection(name_or_id, connection_type)
         if connection.get("connectivityType") != "ShareableCloud":
             raise FabricApiError(
                 f"Connection {name_or_id!r} must be a ShareableCloud "
@@ -231,6 +238,18 @@ class FabricClient:
             raise FabricApiError(
                 f"Connection {name_or_id!r} must use OAuth2 credentials; "
                 f"found {credential_type or 'no credential type'}"
+            )
+        return connection
+
+    def resolve_hana_connection(self, name_or_id: str) -> dict[str, Any]:
+        """Validate an existing gateway-backed HANA connection, never create it."""
+        connection = self._resolve_connection(name_or_id, "SapHana")
+        if connection.get("connectivityType") != "OnPremisesGateway":
+            raise FabricApiError("SAP HANA requires an OnPremisesGateway connection")
+        credential_type = connection.get("credentialDetails", {}).get("credentialType")
+        if credential_type not in {"Basic", "Windows"}:
+            raise FabricApiError(
+                f"SAP HANA connection must use managed Basic or Windows credentials; found {credential_type}"
             )
         return connection
 

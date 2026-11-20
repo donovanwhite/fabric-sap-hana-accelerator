@@ -14,29 +14,44 @@ Usage:
     uv run load_synthetic_data.py --mode delta --business-date 2026-09-30
     uv run load_synthetic_data.py --mode delta --touch-percent 5 \
         --forecast-adjustment-percent 1
+    uv run load_synthetic_data.py --mode scenario --scenario reversal \
+        --entered-at 2026-09-30T12:34:56Z --synthetic-target MY_SIMULATOR_DB
 """
 
 from __future__ import annotations
 
 import argparse
-import csv
 import hashlib
 import json
 import logging
 import os
-import re
 import shutil
 import struct
 import subprocess
 import sys
 import uuid
-from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
-import pyodbc
+if TYPE_CHECKING:
+    import pyodbc
+
+if __package__:
+    from .synthetic_scenarios import (
+        ACDOCA_COLUMNS, EXTRACT_DATE_PATTERN, FAGLFLEXP_COLUMNS,
+        LEGACY_ADDITIONS, SCENARIOS, TABLE_SPECS, Row, SourceRows, TableSpec,
+        apply_scenario, filename_extract_date, normalize_value, read_seed_table,
+        source_file,
+    )
+else:
+    from synthetic_scenarios import (
+        ACDOCA_COLUMNS, EXTRACT_DATE_PATTERN, FAGLFLEXP_COLUMNS,
+        LEGACY_ADDITIONS, SCENARIOS, TABLE_SPECS, Row, SourceRows, TableSpec,
+        apply_scenario, filename_extract_date, normalize_value, read_seed_table,
+        source_file,
+    )
 
 EXIT_SUCCESS = 0
 EXIT_FAILURE = 1
@@ -46,127 +61,6 @@ LOGGER = logging.getLogger(__name__)
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_SOURCE_ROOT = SCRIPT_DIR.parent / "sap_synthetic_data" / "sap"
 DEFAULT_CONNECTION = SCRIPT_DIR / "connection.example.json"
-EXTRACT_DATE_PATTERN = re.compile(r"_(\d{8})\.csv$", re.IGNORECASE)
-
-
-@dataclass(frozen=True)
-class TableSpec:
-    """Describe one source CSV and its Fabric SQL target."""
-
-    name: str
-    schema: str
-    folder: str
-    columns: tuple[str, ...]
-    keys: tuple[str, ...]
-    decimal_columns: tuple[str, ...] = ()
-    numc_widths: tuple[tuple[str, int], ...] = ()
-
-    @property
-    def target(self) -> str:
-        """Return the qualified SQL target."""
-        return f"[{self.schema}].[{self.name}]"
-
-    @property
-    def numc_map(self) -> dict[str, int]:
-        """Return configured ABAP NUMC widths."""
-        return dict(self.numc_widths)
-
-
-ACDOCA_COLUMNS = (
-    "RCLNT", "RLDNR", "RBUKRS", "GJAHR", "POPER", "BELNR", "DOCLN",
-    "RACCT", "RCNTR", "PRCTR", "KOKRS", "LIFNR", "KUNNR", "BUDAT",
-    "BLDAT", "DRCRK", "BLART", "AWTYP", "SGTXT", "RHCUR", "RKCUR",
-    "RWCUR", "HSL", "KSL", "TSL", "WSL", "MSL",
-)
-FAGLFLEXP_COLUMNS = (
-    "RCLNT", "RLDNR", "RBUKRS", "RYEAR", "RACCT", "PRCTR", "KOKRS",
-    "VERSN", "CURTYPE", "RHCUR",
-    *(f"TSL{period:02d}" for period in range(1, 17)),
-)
-
-TABLE_SPECS = (
-    TableSpec(
-        "ACDOCA", "SAPABAP1", "acdoca", ACDOCA_COLUMNS,
-        ("RCLNT", "RLDNR", "RBUKRS", "GJAHR", "BELNR", "DOCLN"),
-        ("HSL", "KSL", "TSL", "WSL", "MSL"),
-        (("GJAHR", 4), ("POPER", 3), ("DOCLN", 6), ("RACCT", 10)),
-    ),
-    TableSpec(
-        "BKPF", "SAPABAP1", "bkpf",
-        ("MANDT", "BUKRS", "GJAHR", "BELNR", "MONAT", "BUDAT", "BLDAT",
-         "BLART", "STBLG", "BKTXT"),
-        ("MANDT", "BUKRS", "GJAHR", "BELNR"),
-        numc_widths=(("GJAHR", 4), ("MONAT", 2)),
-    ),
-    TableSpec(
-        "T001", "SAPABAP1", "t001",
-        ("MANDT", "BUKRS", "BUTXT", "ORT01", "LAND1", "WAERS", "KTOPL"),
-        ("MANDT", "BUKRS"),
-    ),
-    TableSpec(
-        "CSKS", "SAPABAP1", "csks",
-        ("MANDT", "KOKRS", "KOSTL", "BUKRS", "PRCTR", "VERAK", "KOSAR",
-         "KHINR", "DATAB", "DATBI"),
-        ("MANDT", "KOKRS", "KOSTL"),
-    ),
-    TableSpec(
-        "CEPC", "SAPABAP1", "cepc",
-        ("MANDT", "KOKRS", "PRCTR", "BUKRS", "VERAK", "KHINR", "SEGMENT",
-         "DATAB", "DATBI"),
-        ("MANDT", "KOKRS", "PRCTR"),
-    ),
-    TableSpec(
-        "SKA1", "SAPABAP1", "ska1",
-        ("MANDT", "KTOPL", "SAKNR", "XBILK", "GVTYP", "KTOKS"),
-        ("MANDT", "KTOPL", "SAKNR"),
-        numc_widths=(("SAKNR", 10),),
-    ),
-    TableSpec(
-        "SKAT", "SAPABAP1", "skat",
-        ("MANDT", "SPRAS", "KTOPL", "SAKNR", "TXT20", "TXT50"),
-        ("MANDT", "SPRAS", "KTOPL", "SAKNR"),
-        numc_widths=(("SAKNR", 10),),
-    ),
-    TableSpec(
-        "LFA1", "SAPABAP1", "lfa1",
-        ("MANDT", "LIFNR", "NAME1", "NAME2", "LAND1", "ORT01", "REGIO",
-         "KTOKK", "STCD1"),
-        ("MANDT", "LIFNR"),
-    ),
-    TableSpec(
-        "KNA1", "SAPABAP1", "kna1",
-        ("MANDT", "KUNNR", "NAME1", "NAME2", "LAND1", "ORT01", "REGIO",
-         "KTOKD", "STCD1"),
-        ("MANDT", "KUNNR"),
-    ),
-    TableSpec(
-        "FAGLFLEXP", "SAPABAP1", "faglflexp", FAGLFLEXP_COLUMNS,
-        ("RCLNT", "RLDNR", "RBUKRS", "RYEAR", "RACCT", "PRCTR", "VERSN"),
-        tuple(f"TSL{period:02d}" for period in range(1, 17)),
-        (("RYEAR", 4), ("RACCT", 10)),
-    ),
-    TableSpec(
-        "BUDGET", "SAPDEMO", "budget",
-        ("COMPANY_CODE", "GL_ACCOUNT", "COST_CENTER", "PROFIT_CENTER",
-         "FISCAL_YEAR", "FISCAL_PERIOD", "BUDGET_AMOUNT_LOCAL",
-         "FORECAST_AMOUNT_LOCAL", "PLAN_VERSION", "DATA_CLASSIFICATION"),
-        ("COMPANY_CODE", "GL_ACCOUNT", "COST_CENTER", "PROFIT_CENTER",
-         "FISCAL_YEAR", "FISCAL_PERIOD", "PLAN_VERSION"),
-        ("BUDGET_AMOUNT_LOCAL", "FORECAST_AMOUNT_LOCAL"),
-        (("GL_ACCOUNT", 10), ("FISCAL_YEAR", 4), ("FISCAL_PERIOD", 3)),
-    ),
-    TableSpec(
-        "DIVISION_REFERENCE", "SAPDEMO", "division_reference",
-        ("DIVISION_CODE", "DIVISION_NAME"),
-        ("DIVISION_CODE",),
-    ),
-    TableSpec(
-        "GL_ACCOUNT_REFERENCE", "SAPDEMO", "gl_account_reference",
-        ("GL_ACCOUNT", "GL_ACCOUNT_NAME", "FINANCE_CATEGORY"),
-        ("GL_ACCOUNT",),
-        numc_widths=(("GL_ACCOUNT", 10),),
-    ),
-)
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -175,7 +69,7 @@ def create_parser() -> argparse.ArgumentParser:
         description="Load or incrementally touch synthetic SAP Finance data."
     )
     parser.add_argument(
-        "--mode", choices=("initial", "delta"), default="initial"
+        "--mode", choices=("initial", "delta", "scenario"), default="initial"
     )
     parser.add_argument(
         "--source-root", type=Path, default=DEFAULT_SOURCE_ROOT
@@ -204,6 +98,21 @@ def create_parser() -> argparse.ArgumentParser:
         "--tables",
         default="",
         help="Optional comma-separated table names.",
+    )
+    parser.add_argument(
+        "--scenario",
+        type=lambda value: value.replace("-", "_"),
+        choices=SCENARIOS,
+        help="Named source mutation; requires --mode scenario.",
+    )
+    parser.add_argument(
+        "--entered-at",
+        type=datetime.fromisoformat,
+        help="Required scenario entry timestamp; naive values mean UTC.",
+    )
+    parser.add_argument(
+        "--synthetic-target",
+        help="Confirm the exact simulator DB name; its synthetic marker is also required.",
     )
     parser.add_argument("--verbose", action="store_true")
     return parser
@@ -257,6 +166,10 @@ def get_access_token() -> str:
 
 def connect(config_path: Path) -> pyodbc.Connection:
     """Connect to Fabric SQL Database with an Entra access token."""
+    try:
+        import pyodbc
+    except ImportError as error:
+        raise RuntimeError("SQL loading requires pyodbc; use the script's uv environment.") from error
     config = json.loads(config_path.read_text(encoding="utf-8"))
     token_bytes = get_access_token().encode("utf-16-le")
     token_struct = struct.pack(
@@ -274,38 +187,6 @@ def connect(config_path: Path) -> pyodbc.Connection:
         timeout=60,
         autocommit=False,
     )
-
-
-def source_file(spec: TableSpec, root: Path) -> Path:
-    """Resolve the single CSV file for a table."""
-    files = sorted((root / spec.folder).glob("*.csv"))
-    if len(files) != 1:
-        raise ValueError(
-            f"{spec.name}: expected one CSV under {root / spec.folder}, "
-            f"found {len(files)}"
-        )
-    return files[0]
-
-
-def filename_extract_date(path: Path) -> date:
-    """Parse the source extract date from the file name."""
-    match = EXTRACT_DATE_PATTERN.search(path.name)
-    if not match:
-        raise ValueError(f"Extract date missing from file name: {path.name}")
-    return datetime.strptime(match.group(1), "%Y%m%d").date()
-
-
-def normalize_value(spec: TableSpec, column: str, value: str) -> object:
-    """Normalize one CSV value to its SQL representation."""
-    value = value.strip()
-    if not value:
-        return None
-    if column in spec.decimal_columns:
-        return Decimal(value)
-    width = spec.numc_map.get(column)
-    if width and value.isdigit():
-        return value.zfill(width)
-    return value
 
 
 def canonical_value(value: object) -> str:
@@ -349,21 +230,7 @@ def load_rows(
 ) -> tuple[list[tuple[object, ...]], int]:
     """Read, normalize, validate, and select source rows."""
     path = source_file(spec, root)
-    with path.open(newline="", encoding="utf-8-sig") as handle:
-        reader = csv.DictReader(handle)
-        actual_columns = tuple(reader.fieldnames or ())
-        if actual_columns != spec.columns:
-            raise ValueError(
-                f"{spec.name}: columns differ. Expected {spec.columns}; "
-                f"found {actual_columns}"
-            )
-        normalized: list[dict[str, object]] = []
-        for csv_row in reader:
-            row = {
-                column: normalize_value(spec, column, csv_row[column])
-                for column in spec.columns
-            }
-            normalized.append(row)
+    normalized = read_seed_table(spec, root)
 
     selected: list[dict[str, object]]
     if mode == "initial":
@@ -393,8 +260,22 @@ def load_rows(
                     current * multiplier
                 ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
+    return prepare_rows(
+        spec, selected, extract_date, output_name, force_touch=force_touch,
+    ), len(normalized)
+
+
+def prepare_rows(
+    spec: TableSpec,
+    rows: list[Row],
+    extract_date: date,
+    output_name: str,
+    *,
+    force_touch: bool = False,
+) -> list[tuple[object, ...]]:
+    """Reuse the original staging/hash representation for CSVs and scenarios."""
     prepared: list[tuple[object, ...]] = []
-    for row in selected:
+    for row in rows:
         key = business_key(spec, row)
         prepared.append(
             (
@@ -406,7 +287,7 @@ def load_rows(
                 force_touch,
             )
         )
-    return prepared, len(normalized)
+    return prepared
 
 
 def quote_list(columns: tuple[str, ...]) -> str:
@@ -468,6 +349,7 @@ def merge_table(
 ) -> None:
     """Merge source rows into the Fabric SQL source simulator."""
     cursor = connection.cursor()
+    declarations = sql_type_declarations(cursor, spec)
     source_columns = quote_list(spec.columns)
     stage_table = f"[etl].[stage_{spec.name}]"
     cursor.execute(
@@ -489,6 +371,16 @@ def merge_table(
         TRUNCATE TABLE {stage_table};
         """
     )
+    # Staging tables persist between loads. Upgrade those created before the
+    # additive source fields, without dropping any simulator/control tables.
+    for column in LEGACY_ADDITIONS.get(spec.name, ()):
+        cursor.execute(
+            f"""
+            IF COL_LENGTH(N'etl.stage_{spec.name}', N'{column}') IS NULL
+                ALTER TABLE {stage_table}
+                    ADD [{column}] {declarations[column]} NULL;
+            """
+        )
     all_columns = (
         *spec.columns,
         "BUSINESS_KEY",
@@ -504,7 +396,6 @@ def merge_table(
         f"[SOURCE_EXTRACT_DATE], [SOURCE_FILE_NAME], [FORCE_TOUCH] "
         f"FROM OPENJSON(CONVERT(varchar(max), CONVERT(varbinary(max), ?))) WITH ("
     )
-    declarations = sql_type_declarations(cursor, spec)
     with_columns = [
         f"[{column}] {declarations[column]} '$.\"{column}\"'"
         for column in spec.columns
@@ -585,16 +476,151 @@ def selected_specs(selection: str) -> tuple[TableSpec, ...]:
     return tuple(spec for spec in TABLE_SPECS if spec.name in requested)
 
 
+def require_synthetic_target(
+    connection: pyodbc.Connection, confirmed_database: str,
+) -> None:
+    """Refuse scenario writes without both a named confirmation and DB marker."""
+    if not confirmed_database or not confirmed_database.strip():
+        raise ValueError("Scenario writes require --synthetic-target with the exact database name")
+    cursor = connection.cursor()
+    cursor.execute(
+        """
+        SELECT DB_NAME(),
+            CONVERT(nvarchar(128), (
+                SELECT ep.value FROM sys.extended_properties AS ep
+                WHERE ep.class = 0 AND ep.major_id = 0 AND ep.minor_id = 0
+                    AND ep.name = N'SAP_FINANCE_SYNTHETIC_SIMULATOR'
+            ));
+        """
+    )
+    target = cursor.fetchone()
+    if not target or target[0] != confirmed_database or target[1] != "1":
+        raise ValueError(
+            "Scenario target was not confirmed as the explicitly marked synthetic simulator; "
+            "apply schema.sql only to the intended simulator and confirm DB_NAME() exactly."
+        )
+
+
+def read_simulator_rows(connection: pyodbc.Connection) -> SourceRows:
+    """Read declared business columns, in full-key order, from the simulator."""
+    source: SourceRows = {}
+    cursor = connection.cursor()
+    for spec in TABLE_SPECS:
+        cursor.execute(
+            f"SELECT {quote_list(spec.columns)} FROM {spec.target} "
+            f"ORDER BY {quote_list(spec.keys)};"
+        )
+        source[spec.name] = [
+            dict(zip(spec.columns, row, strict=True)) for row in cursor.fetchall()
+        ]
+    return source
+
+
+def _index_rows(spec: TableSpec, rows: list[Row]) -> dict[tuple[object, ...], Row]:
+    indexed: dict[tuple[object, ...], Row] = {}
+    for row in rows:
+        key = tuple(row[column] for column in spec.keys)
+        if any(value is None for value in key) or key in indexed:
+            raise ValueError(f"{spec.name}: missing or duplicate source key: {key}")
+        indexed[key] = row
+    return indexed
+
+
+def apply_simulator_scenario(
+    connection: pyodbc.Connection,
+    scenario: str,
+    entered_at: datetime,
+    confirmed_database: str,
+) -> dict[str, int]:
+    """Apply a deterministic source diff; the caller owns commit/rollback.
+
+    Only explicitly removed full keys are deleted. There is deliberately no
+    broad anti-join delete, reseed, target truncate, or extraction recovery.
+    Use a single simulator writer, as with the original shared staging loader.
+    """
+    require_synthetic_target(connection, confirmed_database)
+    before = read_simulator_rows(connection)
+    after = apply_scenario(before, scenario, entered_at)
+    clock = (
+        entered_at.replace(tzinfo=timezone.utc) if entered_at.tzinfo is None
+        else entered_at.astimezone(timezone.utc)
+    )
+    changes: list[tuple[TableSpec, list[Row], list[Row]]] = []
+    for spec in TABLE_SPECS:
+        old = _index_rows(spec, before[spec.name])
+        new = _index_rows(spec, after[spec.name])
+        removed = [row for key, row in old.items() if key not in new]
+        changed = [
+            row for key, row in new.items()
+            if key not in old
+            or any(row[column] != old[key][column] for column in spec.columns)
+        ]
+        if removed or changed:
+            changes.append((spec, removed, changed))
+
+    deleted_count = 0
+    selected_count = 0
+    cursor = connection.cursor()
+    for spec, removed, changed in changes:
+        predicate = " AND ".join(f"[{key}] = ?" for key in spec.keys)
+        for row in removed:
+            cursor.execute(
+                f"DELETE FROM {spec.target} WHERE {predicate};",
+                *(row[key] for key in spec.keys),
+            )
+        deleted_count += len(removed)
+        if changed:
+            staged = prepare_rows(
+                spec, changed, clock.date(), f"{spec.folder}_{clock:%Y%m%d}.csv",
+            )
+            merge_table(connection, spec, staged)
+            selected_count += len(staged)
+        LOGGER.info(
+            "%s: scenario=%s upserted=%d deleted=%d",
+            spec.name, scenario, len(changed), len(removed),
+        )
+    return {
+        "tables": len(changes),
+        "selectedRows": selected_count,
+        "deletedRows": deleted_count,
+    }
+
+
 def run(args: argparse.Namespace) -> int:
-    """Execute one initial or daily delta load."""
+    """Execute one initial/delta load or an atomic, explicitly synthetic scenario."""
     if not 0 < args.touch_percent <= 100:
         raise ValueError("--touch-percent must be greater than 0 and at most 100")
+    scenario = getattr(args, "scenario", None)
+    entered_at = getattr(args, "entered_at", None)
+    synthetic_target = getattr(args, "synthetic_target", None)
+    if args.mode == "scenario":
+        if not scenario or not entered_at or not synthetic_target:
+            raise ValueError("--mode scenario requires --scenario, --entered-at and --synthetic-target")
+        if args.tables.strip():
+            raise ValueError("--tables cannot partially apply a multi-table source scenario")
+        if scenario.replace("-", "_") not in SCENARIOS:
+            raise ValueError(f"Unknown synthetic scenario: {scenario}")
+        business_date = (
+            entered_at.replace(tzinfo=timezone.utc) if entered_at.tzinfo is None
+            else entered_at.astimezone(timezone.utc)
+        ).date()
+    else:
+        if scenario or entered_at or synthetic_target:
+            raise ValueError("--scenario, --entered-at and --synthetic-target require --mode scenario")
+        business_date = args.business_date
     specs = selected_specs(args.tables)
     batch_id = uuid.uuid4()
     started = datetime.now(timezone.utc).replace(tzinfo=None)
     connection = connect(args.connection_config)
     total_selected = 0
+    total_deleted = 0
+    table_count = len(specs)
+    batch_started = False
     try:
+        if args.mode == "scenario":
+            # Guard even control-table writes; the diff helper also guards its
+            # own public entry point when used outside this command.
+            require_synthetic_target(connection, synthetic_target)
         cursor = connection.cursor()
         cursor.execute(
             """
@@ -606,26 +632,35 @@ def run(args: argparse.Namespace) -> int:
             """,
             str(batch_id),
             args.mode,
-            args.business_date,
+            business_date,
             started,
         )
         connection.commit()
+        batch_started = True
 
-        for spec in specs:
-            rows, source_count = load_rows(
-                spec,
-                args.source_root,
-                args.mode,
-                args.business_date,
-                args.touch_percent,
-                args.forecast_adjustment_percent,
+        if args.mode == "scenario":
+            counts = apply_simulator_scenario(
+                connection, scenario, entered_at, synthetic_target,
             )
-            merge_table(connection, spec, rows)
-            connection.commit()
-            total_selected += len(rows)
-            LOGGER.info(
-                "%s: source=%d selected=%d", spec.name, source_count, len(rows)
-            )
+            total_selected = counts["selectedRows"]
+            total_deleted = counts["deletedRows"]
+            table_count = counts["tables"]
+        else:
+            for spec in specs:
+                rows, source_count = load_rows(
+                    spec,
+                    args.source_root,
+                    args.mode,
+                    business_date,
+                    args.touch_percent,
+                    args.forecast_adjustment_percent,
+                )
+                merge_table(connection, spec, rows)
+                connection.commit()
+                total_selected += len(rows)
+                LOGGER.info(
+                    "%s: source=%d selected=%d", spec.name, source_count, len(rows)
+                )
 
         cursor.execute(
             """
@@ -636,8 +671,8 @@ def run(args: argparse.Namespace) -> int:
                 SOURCE_ROW_COUNT = ?
             WHERE LOAD_BATCH_ID = ?;
             """,
-            len(specs),
-            total_selected,
+            table_count,
+            total_selected + total_deleted,
             str(batch_id),
         )
         connection.commit()
@@ -646,9 +681,13 @@ def run(args: argparse.Namespace) -> int:
                 {
                     "batchId": str(batch_id),
                     "mode": args.mode,
-                    "businessDate": args.business_date.isoformat(),
-                    "tables": len(specs),
+                    "businessDate": business_date.isoformat(),
+                    "tables": table_count,
                     "selectedRows": total_selected,
+                    **(
+                        {"scenario": scenario, "deletedRows": total_deleted}
+                        if args.mode == "scenario" else {}
+                    ),
                 },
                 indent=2,
             )
@@ -656,6 +695,8 @@ def run(args: argparse.Namespace) -> int:
         return EXIT_SUCCESS
     except Exception as error:
         connection.rollback()
+        if not batch_started:
+            raise
         try:
             cursor = connection.cursor()
             cursor.execute(
@@ -687,10 +728,13 @@ def main() -> int:
     except KeyboardInterrupt:
         LOGGER.error("Interrupted")
         return 130
-    except (OSError, ValueError, RuntimeError, pyodbc.Error) as error:
+    except (OSError, ValueError, RuntimeError) as error:
         LOGGER.error("%s", error)
         return EXIT_ERROR
-    except Exception:
+    except Exception as error:
+        if isinstance(error, getattr(sys.modules.get("pyodbc"), "Error", ())):
+            LOGGER.error("%s", error)
+            return EXIT_ERROR
         LOGGER.exception("Unexpected loader failure")
         return EXIT_FAILURE
 

@@ -3,62 +3,52 @@
     "activities": [
       {
         "name": "set_run_upper_bound",
-        "description": "Capture one immutable UTC upper bound for this run.",
         "type": "SetVariable",
         "dependsOn": [],
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureOutput": false,
-          "secureInput": false
-        },
         "typeProperties": {
           "variableName": "run_upper_bound_utc",
-          "value": {
-            "value": "@formatDateTime(utcNow(),'yyyy-MM-ddTHH:mm:ss.fff')",
-            "type": "Expression"
+          "value": {"value":"@formatDateTime(utcNow(),'yyyy-MM-ddTHH:mm:ss.fffZ')","type":"Expression"}
+        }
+      },
+      {
+        "name": "nb_schema_val",
+        "description": "Validate metadata, acquire the source writer and persist an immutable extraction plan.",
+        "type": "TridentNotebook",
+        "dependsOn": [{"activity":"set_run_upper_bound","dependencyConditions":["Succeeded"]}],
+        "policy": {"timeout":"0.12:00:00","retry":0,"retryIntervalInSeconds":30},
+        "typeProperties": {
+          "notebookId": "__NOTEBOOK_ID__",
+          "workspaceId": "__WORKSPACE_ID__",
+          "parameters": {
+            "run_id": {"value":{"value":"@if(empty(pipeline().parameters.p_run_id),pipeline().RunId,pipeline().parameters.p_run_id)","type":"Expression"},"type":"string"},
+            "run_upper_bound_utc": {"value":{"value":"@variables('run_upper_bound_utc')","type":"Expression"},"type":"string"},
+            "operation": {"value":{"value":"@pipeline().parameters.p_operation","type":"Expression"},"type":"string"},
+            "requested_partitions": {"value":{"value":"@string(pipeline().parameters.p_partitions)","type":"Expression"},"type":"string"},
+            "max_parallelism": {"value":{"value":"@pipeline().parameters.p_max_parallelism","type":"Expression"},"type":"int"},
+            "table_config": {"value":{"value":"@string(pipeline().parameters.p_table_config)","type":"Expression"},"type":"string"}
           }
         }
       },
       {
         "name": "fe_copy_sap_full_snapshot",
-        "description": "Sequentially copy complete SAP source projections to dated Bronze snapshots.",
+        "description": "Existing Copy loop, now bounded and metadata-driven for all four extraction modes.",
         "type": "ForEach",
-        "dependsOn": [
-          {
-            "activity": "set_run_upper_bound",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ],
+        "dependsOn": [{"activity":"nb_schema_val","dependencyConditions":["Succeeded"]}],
         "typeProperties": {
-          "items": {
-            "value": "@pipeline().parameters.p_table_config",
-            "type": "Expression"
-          },
-          "isSequential": true,
+          "items": {"value":"@json(activity('nb_schema_val').output.result.exitValue).work_items","type":"Expression"},
+          "isSequential": false,
+          "batchCount": {"value":"@pipeline().parameters.p_max_parallelism","type":"Expression"},
           "activities": [
             {
               "name": "cpy_full_table_snapshot",
-              "description": "Copy the complete source projection to one dated Bronze CSV.",
+              "description": "Read one approved logical extraction with same-statement source controls.",
               "type": "Copy",
               "dependsOn": [],
-              "policy": {
-                "timeout": "0.12:00:00",
-                "retry": 2,
-                "retryIntervalInSeconds": 30,
-                "secureOutput": false,
-                "secureInput": false
-              },
+              "policy": {"timeout":"0.12:00:00","retry":2,"retryIntervalInSeconds":30,"secureOutput":false,"secureInput":false},
               "typeProperties": {
                 "source": {
                   "type": "FabricSqlDatabaseSource",
-                  "sqlReaderQuery": {
-                    "value": "@concat('SELECT ',item().columnList,' FROM ',item().sourceObject)",
-                    "type": "Expression"
-                  },
+                  "sqlReaderQuery": {"value":"@item().source_query","type":"Expression"},
                   "queryTimeout": "02:00:00",
                   "partitionOption": "None",
                   "datasetSettings": {
@@ -68,13 +58,8 @@
                       "properties": {
                         "annotations": [],
                         "type": "FabricSqlDatabase",
-                        "typeProperties": {
-                          "workspaceId": "__WORKSPACE_ID__",
-                          "artifactId": "__SQL_DATABASE_ID__"
-                        },
-                        "externalReferences": {
-                          "connection": "__SQL_CONNECTION_ID__"
-                        }
+                        "typeProperties": {"workspaceId":"__WORKSPACE_ID__","artifactId":"__SQL_DATABASE_ID__"},
+                        "externalReferences": {"connection":"__SQL_CONNECTION_ID__"}
                       }
                     },
                     "type": "FabricSqlDatabaseTable",
@@ -84,28 +69,16 @@
                 },
                 "sink": {
                   "type": "DelimitedTextSink",
-                  "storeSettings": {
-                    "type": "LakehouseWriteSettings"
-                  },
-                  "formatSettings": {
-                    "type": "DelimitedTextWriteSettings",
-                    "quoteAllText": true,
-                    "fileExtension": ".csv"
-                  },
+                  "storeSettings": {"type":"LakehouseWriteSettings"},
+                  "formatSettings": {"type":"DelimitedTextWriteSettings","quoteAllText":true,"fileExtension":".csv"},
                   "datasetSettings": {
                     "annotations": [],
                     "type": "DelimitedText",
                     "typeProperties": {
                       "location": {
                         "type": "LakehouseLocation",
-                        "fileName": {
-                          "value": "@concat(item().filePrefix,'_',formatDateTime(variables('run_upper_bound_utc'),'yyyyMMdd'),'.csv')",
-                          "type": "Expression"
-                        },
-                        "folderPath": {
-                          "value": "@item().sinkFolder",
-                          "type": "Expression"
-                        }
+                        "fileName": "data.csv",
+                        "folderPath": {"value":"@item().sink_folder","type":"Expression"}
                       },
                       "columnDelimiter": ",",
                       "escapeChar": "\\",
@@ -118,24 +91,33 @@
                       "properties": {
                         "annotations": [],
                         "type": "Lakehouse",
-                        "typeProperties": {
-                          "workspaceId": "__WORKSPACE_ID__",
-                          "artifactId": "__BRONZE_LAKEHOUSE_ID__",
-                          "rootFolder": "Files"
-                        }
+                        "typeProperties": {"workspaceId":"__WORKSPACE_ID__","artifactId":"__BRONZE_LAKEHOUSE_ID__","rootFolder":"Files"}
                       }
                     }
                   }
                 },
+                "parallelCopies": 1,
                 "enableStaging": false,
                 "validateDataConsistency": true,
                 "translator": {
                   "type": "TabularTranslator",
                   "typeConversion": true,
-                  "typeConversionSettings": {
-                    "allowDataTruncation": false,
-                    "treatBooleanAsNumber": false
-                  }
+                  "typeConversionSettings": {"allowDataTruncation":false,"treatBooleanAsNumber":false}
+                }
+              }
+            },
+            {
+              "name": "nb_tbl_inventory",
+              "type": "TridentNotebook",
+              "dependsOn": [{"activity":"cpy_full_table_snapshot","dependencyConditions":["Succeeded"]}],
+              "policy": {"timeout":"0.12:00:00","retry":2,"retryIntervalInSeconds":30},
+              "typeProperties": {
+                "notebookId": "__NOTEBOOK_ID__",
+                "workspaceId": "__WORKSPACE_ID__",
+                "parameters": {
+                  "work_id": {"value":{"value":"@item().work_id","type":"Expression"},"type":"string"},
+                  "copy_output": {"value":{"value":"@string(activity('cpy_full_table_snapshot').output)","type":"Expression"},"type":"string"},
+                  "table_config": {"value":{"value":"@string(pipeline().parameters.p_table_config)","type":"Expression"},"type":"string"}
                 }
               }
             }
@@ -143,352 +125,85 @@
         }
       },
       {
-        "name": "nb_schema_val",
-        "description": "schema validation pre-run",
-        "type": "TridentNotebook",
-        "dependsOn": [
-          {
-            "activity": "fe_copy_sap_full_snapshot",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ],
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureOutput": false,
-          "secureInput": false
-        },
-        "typeProperties": {
-          "notebookId": "__NOTEBOOK_ID__",
-          "workspaceId": "__WORKSPACE_ID__"
-        }
-      },
-      {
-        "name": "nb_tbl_inventory",
-        "type": "TridentNotebook",
-        "dependsOn": [
-          {
-            "activity": "nb_schema_val",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ],
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureOutput": false,
-          "secureInput": false
-        },
-        "typeProperties": {
-          "notebookId": "__NOTEBOOK_ID__",
-          "workspaceId": "__WORKSPACE_ID__",
-          "parameters": {
-            "processing_date": {
-              "value": {
-                "value": "@formatDateTime(variables('run_upper_bound_utc'),'yyyy-MM-dd')",
-                "type": "Expression"
-              },
-              "type": "string"
-            }
-          }
-        }
-      },
-      {
         "name": "nb_brz_slv_sap",
-        "description": "Transform SAP HANA Finance CSV records from Bronze layer to Silver",
         "type": "TridentNotebook",
-        "dependsOn": [
-          {
-            "activity": "nb_tbl_inventory",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ],
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureOutput": false,
-          "secureInput": false
-        },
+        "dependsOn": [{"activity":"fe_copy_sap_full_snapshot","dependencyConditions":["Completed"]}],
+        "policy": {"timeout":"0.12:00:00","retry":0,"retryIntervalInSeconds":30},
         "typeProperties": {
           "notebookId": "__NOTEBOOK_ID__",
           "workspaceId": "__WORKSPACE_ID__",
           "parameters": {
-            "processing_date": {
-              "value": {
-                "value": "@formatDateTime(variables('run_upper_bound_utc'),'yyyy-MM-dd')",
-                "type": "Expression"
-              },
-              "type": "string"
-            }
+            "run_id": {"value":{"value":"@json(activity('nb_schema_val').output.result.exitValue).run_id","type":"Expression"},"type":"string"},
+            "table_config": {"value":{"value":"@string(pipeline().parameters.p_table_config)","type":"Expression"},"type":"string"}
           }
         }
       },
       {
         "name": "nb_gld_dim_sap",
         "type": "TridentNotebook",
-        "dependsOn": [
-          {
-            "activity": "nb_brz_slv_sap",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ],
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureOutput": false,
-          "secureInput": false
-        },
+        "dependsOn": [{"activity":"nb_brz_slv_sap","dependencyConditions":["Succeeded"]}],
         "typeProperties": {
-          "notebookId": "__NOTEBOOK_ID__",
-          "workspaceId": "__WORKSPACE_ID__"
+          "notebookId":"__NOTEBOOK_ID__","workspaceId":"__WORKSPACE_ID__",
+          "parameters":{"run_id":{"value":{"value":"@json(activity('nb_schema_val').output.result.exitValue).run_id","type":"Expression"},"type":"string"}}
         }
       },
       {
         "name": "nb_gld_fct_fin_sap",
         "type": "TridentNotebook",
-        "dependsOn": [
-          {
-            "activity": "nb_gld_dim_sap",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ],
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureOutput": false,
-          "secureInput": false
-        },
+        "dependsOn": [{"activity":"nb_gld_dim_sap","dependencyConditions":["Succeeded"]}],
         "typeProperties": {
-          "notebookId": "__NOTEBOOK_ID__",
-          "workspaceId": "__WORKSPACE_ID__"
+          "notebookId":"__NOTEBOOK_ID__","workspaceId":"__WORKSPACE_ID__",
+          "parameters":{"run_id":{"value":{"value":"@json(activity('nb_schema_val').output.result.exitValue).run_id","type":"Expression"},"type":"string"}}
         }
       },
       {
         "name": "nb_gld_bgt_sap",
         "type": "TridentNotebook",
-        "dependsOn": [
-          {
-            "activity": "nb_gld_dim_sap",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ],
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureOutput": false,
-          "secureInput": false
-        },
+        "dependsOn": [{"activity":"nb_gld_dim_sap","dependencyConditions":["Succeeded"]}],
         "typeProperties": {
-          "notebookId": "__NOTEBOOK_ID__",
-          "workspaceId": "__WORKSPACE_ID__"
+          "notebookId":"__NOTEBOOK_ID__","workspaceId":"__WORKSPACE_ID__",
+          "parameters":{"run_id":{"value":{"value":"@json(activity('nb_schema_val').output.result.exitValue).run_id","type":"Expression"},"type":"string"}}
         }
       },
       {
         "name": "nb_gld_fct_mlv",
         "type": "TridentNotebook",
         "dependsOn": [
-          {
-            "activity": "nb_gld_fct_fin_sap",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          },
-          {
-            "activity": "nb_gld_bgt_sap",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
+          {"activity":"nb_gld_fct_fin_sap","dependencyConditions":["Succeeded"]},
+          {"activity":"nb_gld_bgt_sap","dependencyConditions":["Succeeded"]}
         ],
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureOutput": false,
-          "secureInput": false
-        },
-        "typeProperties": {
-          "notebookId": "__NOTEBOOK_ID__",
-          "workspaceId": "__WORKSPACE_ID__"
-        }
+        "typeProperties": {"notebookId":"__NOTEBOOK_ID__","workspaceId":"__WORKSPACE_ID__"}
       },
       {
         "name": "nb_full_validation",
         "type": "TridentNotebook",
-        "dependsOn": [
-          {
-            "activity": "nb_gld_fct_mlv",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ],
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureOutput": false,
-          "secureInput": false
-        },
+        "dependsOn": [{"activity":"nb_gld_fct_mlv","dependencyConditions":["Succeeded"]}],
         "typeProperties": {
-          "notebookId": "__NOTEBOOK_ID__",
-          "workspaceId": "__WORKSPACE_ID__"
+          "notebookId":"__NOTEBOOK_ID__","workspaceId":"__WORKSPACE_ID__",
+          "parameters":{"run_id":{"value":{"value":"@json(activity('nb_schema_val').output.result.exitValue).run_id","type":"Expression"},"type":"string"}}
         }
       },
       {
         "name": "nb_bronze_cleanup",
-        "description": "Retain the current Bronze snapshot and delete older snapshots after successful validation.",
+        "description": "Commit validated checkpoints; retain immutable Bronze for recovery and reconciliation.",
         "type": "TridentNotebook",
-        "dependsOn": [
-          {
-            "activity": "nb_full_validation",
-            "dependencyConditions": [
-              "Succeeded"
-            ]
-          }
-        ],
-        "policy": {
-          "timeout": "0.12:00:00",
-          "retry": 0,
-          "retryIntervalInSeconds": 30,
-          "secureOutput": false,
-          "secureInput": false
-        },
+        "dependsOn": [{"activity":"nb_full_validation","dependencyConditions":["Succeeded"]}],
         "typeProperties": {
-          "notebookId": "__NOTEBOOK_ID__",
-          "workspaceId": "__WORKSPACE_ID__",
+          "notebookId":"__NOTEBOOK_ID__","workspaceId":"__WORKSPACE_ID__",
           "parameters": {
-            "processing_date": {
-              "value": {
-                "value": "@formatDateTime(variables('run_upper_bound_utc'),'yyyy-MM-dd')",
-                "type": "Expression"
-              },
-              "type": "string"
-            }
+            "run_id":{"value":{"value":"@json(activity('nb_schema_val').output.result.exitValue).run_id","type":"Expression"},"type":"string"},
+            "table_config":{"value":{"value":"@string(pipeline().parameters.p_table_config)","type":"Expression"},"type":"string"}
           }
         }
       }
     ],
     "parameters": {
-      "p_table_config": {
-        "type": "Array",
-        "defaultValue": [
-          {
-            "name": "ACDOCA",
-            "sinkFolder": "bronze/sap_finance/acdoca",
-            "filePrefix": "acdoca",
-            "columnList": "[RCLNT],[RLDNR],[RBUKRS],[GJAHR],[POPER],[BELNR],[DOCLN],[RACCT],[RCNTR],[PRCTR],[KOKRS],[LIFNR],[KUNNR],[BUDAT],[BLDAT],[DRCRK],[BLART],[AWTYP],[SGTXT],[RHCUR],[RKCUR],[RWCUR],[HSL],[KSL],[TSL],[WSL],[MSL]",
-            "sourceObject": "[SAPABAP1].[ACDOCA]"
-          },
-          {
-            "name": "BKPF",
-            "sinkFolder": "bronze/sap_finance/bkpf",
-            "filePrefix": "bkpf",
-            "columnList": "[MANDT],[BUKRS],[GJAHR],[BELNR],[MONAT],[BUDAT],[BLDAT],[BLART],[STBLG],[BKTXT]",
-            "sourceObject": "[SAPABAP1].[BKPF]"
-          },
-          {
-            "name": "T001",
-            "sinkFolder": "bronze/sap_finance/t001",
-            "filePrefix": "t001",
-            "columnList": "[MANDT],[BUKRS],[BUTXT],[ORT01],[LAND1],[WAERS],[KTOPL]",
-            "sourceObject": "[SAPABAP1].[T001]"
-          },
-          {
-            "name": "CSKS",
-            "sinkFolder": "bronze/sap_finance/csks",
-            "filePrefix": "csks",
-            "columnList": "[MANDT],[KOKRS],[KOSTL],[BUKRS],[PRCTR],[VERAK],[KOSAR],[KHINR],[DATAB],[DATBI]",
-            "sourceObject": "[SAPABAP1].[CSKS]"
-          },
-          {
-            "name": "CEPC",
-            "sinkFolder": "bronze/sap_finance/cepc",
-            "filePrefix": "cepc",
-            "columnList": "[MANDT],[KOKRS],[PRCTR],[BUKRS],[VERAK],[KHINR],[SEGMENT],[DATAB],[DATBI]",
-            "sourceObject": "[SAPABAP1].[CEPC]"
-          },
-          {
-            "name": "SKA1",
-            "sinkFolder": "bronze/sap_finance/ska1",
-            "filePrefix": "ska1",
-            "columnList": "[MANDT],[KTOPL],[SAKNR],[XBILK],[GVTYP],[KTOKS]",
-            "sourceObject": "[SAPABAP1].[SKA1]"
-          },
-          {
-            "name": "SKAT",
-            "sinkFolder": "bronze/sap_finance/skat",
-            "filePrefix": "skat",
-            "columnList": "[MANDT],[SPRAS],[KTOPL],[SAKNR],[TXT20],[TXT50]",
-            "sourceObject": "[SAPABAP1].[SKAT]"
-          },
-          {
-            "name": "LFA1",
-            "sinkFolder": "bronze/sap_finance/lfa1",
-            "filePrefix": "lfa1",
-            "columnList": "[MANDT],[LIFNR],[NAME1],[NAME2],[LAND1],[ORT01],[REGIO],[KTOKK],[STCD1]",
-            "sourceObject": "[SAPABAP1].[LFA1]"
-          },
-          {
-            "name": "KNA1",
-            "sinkFolder": "bronze/sap_finance/kna1",
-            "filePrefix": "kna1",
-            "columnList": "[MANDT],[KUNNR],[NAME1],[NAME2],[LAND1],[ORT01],[REGIO],[KTOKD],[STCD1]",
-            "sourceObject": "[SAPABAP1].[KNA1]"
-          },
-          {
-            "name": "FAGLFLEXP",
-            "sinkFolder": "bronze/sap_finance/faglflexp",
-            "filePrefix": "faglflexp",
-            "columnList": "[RCLNT],[RLDNR],[RBUKRS],[RYEAR],[RACCT],[PRCTR],[KOKRS],[VERSN],[CURTYPE],[RHCUR],[TSL01],[TSL02],[TSL03],[TSL04],[TSL05],[TSL06],[TSL07],[TSL08],[TSL09],[TSL10],[TSL11],[TSL12],[TSL13],[TSL14],[TSL15],[TSL16]",
-            "sourceObject": "[SAPABAP1].[FAGLFLEXP]"
-          },
-          {
-            "name": "BUDGET",
-            "sinkFolder": "bronze/sap_finance/budget",
-            "filePrefix": "budget",
-            "columnList": "[COMPANY_CODE],[GL_ACCOUNT],[COST_CENTER],[PROFIT_CENTER],[FISCAL_YEAR],[FISCAL_PERIOD],[BUDGET_AMOUNT_LOCAL],[FORECAST_AMOUNT_LOCAL],[PLAN_VERSION],[DATA_CLASSIFICATION]",
-            "sourceObject": "[SAPDEMO].[BUDGET]"
-          },
-          {
-            "name": "DIVISION_REFERENCE",
-            "sinkFolder": "bronze/sap_finance/division_reference",
-            "filePrefix": "division_reference",
-            "columnList": "[DIVISION_CODE],[DIVISION_NAME]",
-            "sourceObject": "[SAPDEMO].[DIVISION_REFERENCE]"
-          },
-          {
-            "name": "GL_ACCOUNT_REFERENCE",
-            "sinkFolder": "bronze/sap_finance/gl_account_reference",
-            "filePrefix": "gl_account_reference",
-            "columnList": "[GL_ACCOUNT],[GL_ACCOUNT_NAME],[FINANCE_CATEGORY]",
-            "sourceObject": "[SAPDEMO].[GL_ACCOUNT_REFERENCE]"
-          }
-        ]
-      }
+      "p_operation": {"type":"String","defaultValue":"AUTO"},
+      "p_run_id": {"type":"String","defaultValue":""},
+      "p_partitions": {"type":"Array","defaultValue":[]},
+      "p_max_parallelism": {"type":"Int","defaultValue":2},
+      "p_table_config": {"type":"Array","defaultValue":[]}
     },
-    "variables": {
-      "run_upper_bound_utc": {
-        "type": "String",
-        "defaultValue": ""
-      }
-    }
+    "variables": {"run_upper_bound_utc":{"type":"String","defaultValue":""}}
   }
 }

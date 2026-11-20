@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Deploy the SAP Finance Fabric solution accelerator"
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
-dependencies = []
+dependencies = ["tzdata>=2025.2,<2027; sys_platform == 'win32'"]
 
 [project.scripts]
 fabric-sap-deploy = "fabric_sap_deployer.cli:main"

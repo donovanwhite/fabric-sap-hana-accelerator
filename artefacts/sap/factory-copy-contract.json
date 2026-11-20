@@ -1,10 +1,31 @@
 {
   "database": "SAP_FIN_DB",
-  "loadStrategy": "FULL_SNAPSHOT",
+  "loadStrategy": "HYBRID",
+  "sourceSystem": "SAP_S4HANA",
+  "sourceIdentity": {"kind":"synthetic-profile","name":"SAP_FIN_DB"},
+  "sourceTimezone": "UTC",
+  "maxConcurrency": 2,
+  "overlapHours": 48,
+  "currentFiscalYear": 2026,
+  "fiscalYearRange": [1900,2100],
+  "reconciliation": {
+    "CURRENT_FISCAL_YEAR": 1,
+    "PREVIOUS_FISCAL_YEAR": 7,
+    "HISTORICAL_FISCAL_YEARS": 30
+  },
   "tables": [
     {
       "name": "ACDOCA",
       "sourceObject": "SAPABAP1.ACDOCA",
+      "extractionMode": "DOCUMENT_INCREMENTAL",
+      "columns": ["RCLNT","RLDNR","RBUKRS","GJAHR","POPER","BELNR","DOCLN","RACCT","RCNTR","PRCTR","KOKRS","LIFNR","KUNNR","BUDAT","BLDAT","DRCRK","BLART","AWTYP","SGTXT","RHCUR","RKCUR","RTCUR","RWCUR","HSL","KSL","TSL","WSL","MSL"],
+      "required": ["RACCT","POPER","BUDAT","DRCRK"],
+      "types": {"GJAHR":"int","POPER":"int","BUDAT":"date","BLDAT":"date","HSL":"decimal(23,2)","KSL":"decimal(23,2)","TSL":"decimal(23,2)","WSL":"decimal(23,2)","MSL":"decimal(23,3)"},
+      "partitionColumns": ["GJAHR","RBUKRS","RLDNR"],
+      "partitionValues": {"GJAHR":["2025","2026"],"RBUKRS":["1000","1100","1200","1300"],"RLDNR":["0L"]},
+      "documentDiscovery": {"schema":"SAPABAP1","table":"BKPF","dateColumn":"CPUDT","timeColumn":"CPUTM"},
+      "amountCurrencies": {"HSL":"RHCUR","KSL":"RKCUR","TSL":"RTCUR","WSL":"RWCUR"},
+      "financialTolerance": "0.00",
       "sinkFolder": "Files/bronze/sap_finance/acdoca",
       "businessKey": [
         "RCLNT",
@@ -18,6 +39,13 @@
     {
       "name": "BKPF",
       "sourceObject": "SAPABAP1.BKPF",
+      "extractionMode": "DOCUMENT_INCREMENTAL",
+      "columns": ["MANDT","BUKRS","GJAHR","BELNR","MONAT","BUDAT","BLDAT","CPUDT","CPUTM","BLART","STBLG","STJAH","BSTAT","BKTXT"],
+      "required": ["CPUDT","CPUTM"],
+      "types": {"GJAHR":"int","MONAT":"int","BUDAT":"date","BLDAT":"date","CPUDT":"date"},
+      "partitionColumns": ["GJAHR","BUKRS"],
+      "partitionValues": {"GJAHR":["2025","2026"],"BUKRS":["1000","1100","1200","1300"]},
+      "documentDiscovery": {"schema":"SAPABAP1","table":"BKPF","dateColumn":"CPUDT","timeColumn":"CPUTM"},
       "sinkFolder": "Files/bronze/sap_finance/bkpf",
       "businessKey": [
         "MANDT",
@@ -29,6 +57,8 @@
     {
       "name": "T001",
       "sourceObject": "SAPABAP1.T001",
+      "extractionMode": "SNAPSHOT_COMPARE",
+      "columns": ["MANDT","BUKRS","BUTXT","ORT01","LAND1","WAERS","KTOPL"],
       "sinkFolder": "Files/bronze/sap_finance/t001",
       "businessKey": [
         "MANDT",
@@ -38,26 +68,39 @@
     {
       "name": "CSKS",
       "sourceObject": "SAPABAP1.CSKS",
+      "extractionMode": "SNAPSHOT_COMPARE",
+      "columns": ["MANDT","KOKRS","KOSTL","BUKRS","PRCTR","VERAK","KOSAR","KHINR","DATAB","DATBI"],
+      "types": {"DATAB":"date","DATBI":"date"},
+      "required": ["DATAB"],
       "sinkFolder": "Files/bronze/sap_finance/csks",
       "businessKey": [
         "MANDT",
         "KOKRS",
-        "KOSTL"
+        "KOSTL",
+        "DATBI"
       ]
     },
     {
       "name": "CEPC",
       "sourceObject": "SAPABAP1.CEPC",
+      "extractionMode": "SNAPSHOT_COMPARE",
+      "columns": ["MANDT","KOKRS","PRCTR","BUKRS","VERAK","KHINR","SEGMENT","DATAB","DATBI"],
+      "types": {"DATAB":"date","DATBI":"date"},
+      "required": ["DATAB","KHINR"],
+      "syntheticProjection": true,
       "sinkFolder": "Files/bronze/sap_finance/cepc",
       "businessKey": [
         "MANDT",
         "KOKRS",
-        "PRCTR"
+        "PRCTR",
+        "DATBI"
       ]
     },
     {
       "name": "SKA1",
       "sourceObject": "SAPABAP1.SKA1",
+      "extractionMode": "SNAPSHOT_COMPARE",
+      "columns": ["MANDT","KTOPL","SAKNR","XBILK","GVTYP","KTOKS"],
       "sinkFolder": "Files/bronze/sap_finance/ska1",
       "businessKey": [
         "MANDT",
@@ -68,6 +111,8 @@
     {
       "name": "SKAT",
       "sourceObject": "SAPABAP1.SKAT",
+      "extractionMode": "SNAPSHOT_COMPARE",
+      "columns": ["MANDT","SPRAS","KTOPL","SAKNR","TXT20","TXT50"],
       "sinkFolder": "Files/bronze/sap_finance/skat",
       "businessKey": [
         "MANDT",
@@ -79,6 +124,8 @@
     {
       "name": "LFA1",
       "sourceObject": "SAPABAP1.LFA1",
+      "extractionMode": "SNAPSHOT_COMPARE",
+      "columns": ["MANDT","LIFNR","NAME1","NAME2","LAND1","ORT01","REGIO","KTOKK","STCD1"],
       "sinkFolder": "Files/bronze/sap_finance/lfa1",
       "businessKey": [
         "MANDT",
@@ -88,6 +135,8 @@
     {
       "name": "KNA1",
       "sourceObject": "SAPABAP1.KNA1",
+      "extractionMode": "SNAPSHOT_COMPARE",
+      "columns": ["MANDT","KUNNR","NAME1","NAME2","LAND1","ORT01","REGIO","KTOKD","STCD1"],
       "sinkFolder": "Files/bronze/sap_finance/kna1",
       "businessKey": [
         "MANDT",
@@ -97,6 +146,11 @@
     {
       "name": "FAGLFLEXP",
       "sourceObject": "SAPABAP1.FAGLFLEXP",
+      "extractionMode": "FULL_SNAPSHOT",
+      "columns": ["RCLNT","RLDNR","RBUKRS","RYEAR","RACCT","PRCTR","KOKRS","VERSN","CURTYPE","RHCUR","TSL01","TSL02","TSL03","TSL04","TSL05","TSL06","TSL07","TSL08","TSL09","TSL10","TSL11","TSL12","TSL13","TSL14","TSL15","TSL16"],
+      "types": {"RYEAR":"int","TSL01":"decimal(23,2)","TSL02":"decimal(23,2)","TSL03":"decimal(23,2)","TSL04":"decimal(23,2)","TSL05":"decimal(23,2)","TSL06":"decimal(23,2)","TSL07":"decimal(23,2)","TSL08":"decimal(23,2)","TSL09":"decimal(23,2)","TSL10":"decimal(23,2)","TSL11":"decimal(23,2)","TSL12":"decimal(23,2)","TSL13":"decimal(23,2)","TSL14":"decimal(23,2)","TSL15":"decimal(23,2)","TSL16":"decimal(23,2)"},
+      "syntheticProjection": true,
+      "amountColumns": ["TSL01","TSL02","TSL03","TSL04","TSL05","TSL06","TSL07","TSL08","TSL09","TSL10","TSL11","TSL12","TSL13","TSL14","TSL15","TSL16"],
       "sinkFolder": "Files/bronze/sap_finance/faglflexp",
       "businessKey": [
         "RCLNT",
@@ -111,6 +165,13 @@
     {
       "name": "BUDGET",
       "sourceObject": "SAPDEMO.BUDGET",
+      "financeContext": {"client":"100","ledger":"0L"},
+      "extractionMode": "SNAPSHOT_COMPARE",
+      "columns": ["COMPANY_CODE","GL_ACCOUNT","COST_CENTER","PROFIT_CENTER","FISCAL_YEAR","FISCAL_PERIOD","BUDGET_AMOUNT_LOCAL","FORECAST_AMOUNT_LOCAL","PLAN_VERSION","DATA_CLASSIFICATION"],
+      "types": {"FISCAL_YEAR":"int","FISCAL_PERIOD":"int","BUDGET_AMOUNT_LOCAL":"decimal(23,2)","FORECAST_AMOUNT_LOCAL":"decimal(23,2)"},
+      "syntheticProjection": true,
+      "required": ["BUDGET_AMOUNT_LOCAL"],
+      "amountColumns": ["BUDGET_AMOUNT_LOCAL","FORECAST_AMOUNT_LOCAL"],
       "sinkFolder": "Files/bronze/sap_finance/budget",
       "businessKey": [
         "COMPANY_CODE",
@@ -125,6 +186,10 @@
     {
       "name": "DIVISION_REFERENCE",
       "sourceObject": "SAPDEMO.DIVISION_REFERENCE",
+      "extractionMode": "SNAPSHOT_COMPARE",
+      "columns": ["DIVISION_CODE","DIVISION_NAME"],
+      "syntheticProjection": true,
+      "required": ["DIVISION_NAME"],
       "sinkFolder": "Files/bronze/sap_finance/division_reference",
       "businessKey": [
         "DIVISION_CODE"
@@ -133,6 +198,10 @@
     {
       "name": "GL_ACCOUNT_REFERENCE",
       "sourceObject": "SAPDEMO.GL_ACCOUNT_REFERENCE",
+      "extractionMode": "SNAPSHOT_COMPARE",
+      "columns": ["GL_ACCOUNT","GL_ACCOUNT_NAME","FINANCE_CATEGORY"],
+      "syntheticProjection": true,
+      "required": ["GL_ACCOUNT_NAME","FINANCE_CATEGORY"],
       "sinkFolder": "Files/bronze/sap_finance/gl_account_reference",
       "businessKey": [
         "GL_ACCOUNT"

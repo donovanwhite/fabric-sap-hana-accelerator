@@ -2,7 +2,7 @@
 title: SAP Finance Fabric automated deployment
 description: Deploy the complete accelerator into an existing Microsoft Fabric workspace
 author: Data and AI Engineering
-ms.date: 2026-10-05
+ms.date: 2026-11-19
 ms.topic: tutorial
 keywords:
   - Microsoft Fabric
@@ -29,6 +29,10 @@ The defaults are `conn_sap_finance_sql`,
 `conn_sap_finance_planning_dataset`.
 
 The local machine requires Python 3.11–3.13 and an authenticated Azure CLI.
+For named source timezones on Windows, install the package with
+`python -m pip install .\deployment`; its conditional `tzdata` dependency
+provides the IANA timezone database. The synthetic UTC profile needs no
+additional timezone data.
 
 ## Deploy
 
@@ -54,6 +58,22 @@ The access token issued by `az login` determines the Fabric tenant. The
 deployer accepts either a workspace name or ID, but the ID is recommended
 because it is unambiguous. If Azure CLI is already signed into the correct
 tenant, another login is not required.
+
+For an authorized SAP HANA source, retain the same deployment path and pass
+its existing managed gateway connection and a release-verified contract:
+
+```powershell
+.\deployment\deploy.ps1 -Workspace "<test-workspace-id>" `
+  -HanaConnection "<managed-hana-connection-name-or-id>" `
+  -ExtractionContract "<approved-source-contract.json>" -DryRun
+```
+
+The HANA preflight checks the managed `SapHana` connection, gateway connectivity
+and supported managed Basic/Windows authentication. It does not create source
+credentials or SAP objects. Every source projection must be marked
+`schemaVerified=true`, the contract must name `validatedRelease`, and standard
+SAP tables require explicit client filters. The supplied synthetic contract is
+not a customer release certification. Planning connections remain separate.
 
 Use `-DryRun` to validate the workspace and print the deployment plan without
 creating items:
@@ -128,11 +148,12 @@ reports
 semantic models
 ```
 
-The pipeline uses a parameterized, sequential `ForEach` with a nested Copy
-activity to read complete table projections from `SAP_FIN_DB` into dated
-Bronze CSV snapshots. The source query has no watermark or incremental
-predicate. Table names, selected columns, source objects, and sink paths are
-configured through the `p_table_config` pipeline parameter.
+The existing parameterized `ForEach` now uses bounded parallelism. Notebook 00
+persists the plan before Copy; notebook 01 validates each immutable receipt.
+The source is `FabricSqlDatabaseSource` for the simulator, or `SapHanaSource`
+for an explicitly verified HANA deployment. Each Copy runs one query, avoiding
+nested query parallelism. Shared metadata supplies all projections, scopes,
+entry windows, business keys and validation contracts.
 
 The semantic model uses Direct Lake on SQL. The installer resolves the Gold
 Lakehouse SQL endpoint and database name and substitutes them into the TMDL
@@ -153,7 +174,19 @@ checked for unresolved deployment tokens and source-tenant workspace, item,
 notebook, semantic model, and connection identifiers before publication. It
 never runs the data pipeline. After a successful deployment, the team runs
 `pl_full_medallion_sap_finance` to create Silver, Gold, the Materialized Lake
-Views, and validation evidence.
+Views, and validation evidence. `AUTO` initializes configured fiscal-year
+partitions on first use and then selects document incremental extraction.
+Use `RECONCILE` for the separately scheduled historical refresh policy.
+The pipeline item name is retained for compatibility; it is no longer
+restricted to full snapshots.
+
+Incremental runs retain much less financial source data when their document
+window is selective, but master snapshots and reconciliation still consume
+source/compute capacity. Source control rows add transfer overhead. Retained
+immutable Bronze and pinned Delta versions increase storage until the approved
+retention horizon. No additional orchestration service is provisioned. Measure
+representative HANA query plans, transfer and capacity before raising
+concurrency; local synthetic timings are not production benchmarks.
 
 For an existing Plan, `-Overwrite` preserves the live Plan definition instead
 of replacing it. This protects UI-initialized editable inputs, writeback
@@ -185,3 +218,45 @@ Each deployment step is validated before its dependants start. The installer:
 
 It does not delete pre-existing workspace items or perform an automatic
 rollback.
+
+## Local regression checks
+
+From the repository root:
+
+```powershell
+$env:PYTHONPATH = Join-Path (Get-Location) "deployment\src"
+python -m unittest discover -s deployment\tests -q
+```
+
+This checks source SQL generation, boundaries, metadata, deterministic
+scenarios, financial controls, affected-key behavior and deployment bindings
+without requiring production SAP or Fabric credentials.
+
+Actual Spark/Delta tests use an isolated Linux container with Python 3.11,
+Spark 3.5.5 and Delta 3.2.1. From PowerShell 7 on Windows:
+
+```powershell
+.\deployment\tests\Invoke-SparkValidation.ps1 -Suite Recovery
+.\deployment\tests\Invoke-SparkValidation.ps1 -Suite Gold
+.\deployment\tests\Invoke-SparkValidation.ps1 -Suite Medallion
+```
+
+`-Suite All` runs all three sequentially. The launcher uses the configured host
+package index for its pinned wheel and verified HTTPS for pinned Maven jars.
+It does not replace registries or disable TLS verification. The local Docker
+context must use a local socket; source files are mounted read-only and test
+containers have no external network, two CPUs and a 4 GiB memory limit.
+Host Python and Java are not changed. Downloaded dependencies are cached outside
+the repository; `-DependencyCache` can select an existing approved cache.
+
+Recovery exercises real Delta publication, partial failure, checkpoint
+membership, lost acknowledgements and replay. Gold covers native currency
+migration and repair. Medallion executes compiled Gold notebooks and
+end-to-end assertions over all 13 synthetic source tables, then verifies
+business-state replay and MLV SELECT results.
+
+A preinstalled local Fabric-compatible Spark/Delta environment can execute
+the same Python scripts directly. Local Spark does not validate Fabric gateway
+connectivity, notebook activity output contracts, Fabric MLV DDL/refresh,
+Power BI DAX execution or live Direct Lake/Data Agent behavior. Those require
+an explicitly authorized test workspace and appropriate authoring tooling.

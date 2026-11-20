@@ -2,17 +2,17 @@
 table 'Finance Actual Monthly'
 
 	/// Monthly actual amount in local currency.
-	measure 'Monthly Actual Local Amount' = SUM('Finance Actual Monthly'[Actual Amount Local])
+	measure 'Monthly Actual Local Amount' = IF(ISEMPTY('Finance Actual Monthly') || (HASONEVALUE('Finance Actual Monthly'[SAP Client]) && HASONEVALUE('Finance Actual Monthly'[Ledger]) && HASONEVALUE('Finance Actual Monthly'[Local Currency])), SUM('Finance Actual Monthly'[Actual Amount Local]), ERROR("Select one SAP client, ledger and local currency."))
 		formatString: #,##0.00
 		displayFolder: Amounts
 
-	/// Monthly actual amount in group currency.
-	measure 'Monthly Actual Group Amount' = SUM('Finance Actual Monthly'[Actual Amount Group])
+	/// Monthly actual amount in global currency; the legacy Group label is retained.
+	measure 'Monthly Actual Group Amount' = IF(ISEMPTY('Finance Actual Monthly') || (HASONEVALUE('Finance Actual Monthly'[SAP Client]) && HASONEVALUE('Finance Actual Monthly'[Ledger]) && HASONEVALUE('Finance Actual Monthly'[Group Currency])), SUM('Finance Actual Monthly'[Actual Amount Group]), ERROR("Select one SAP client, ledger and global currency."))
 		formatString: #,##0.00
 		displayFolder: Amounts
 
 	/// Monthly actual amount in transaction currency.
-	measure 'Monthly Actual Transaction Amount' = SUM('Finance Actual Monthly'[Actual Amount Transaction])
+	measure 'Monthly Actual Transaction Amount' = IF(ISEMPTY('Finance Actual Monthly') || (HASONEVALUE('Finance Actual Monthly'[SAP Client]) && HASONEVALUE('Finance Actual Monthly'[Ledger]) && HASONEVALUE('Finance Actual Monthly'[Transaction Currency])), SUM('Finance Actual Monthly'[Actual Amount Transaction]), ERROR("Select one SAP client, ledger and balance transaction currency."))
 		formatString: #,##0.00
 		displayFolder: Amounts
 
@@ -25,6 +25,36 @@ table 'Finance Actual Monthly'
 	measure 'Monthly Actual Line Count' = SUM('Finance Actual Monthly'[Line Item Count])
 		formatString: #,##0
 		displayFolder: Counts
+
+	/// SAP client in the serving grain.
+	column 'SAP Client'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: client
+
+	/// Ledger in the serving grain.
+	column 'Ledger'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: ledger
+
+	/// Currency of actual_amount_local.
+	column 'Local Currency'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: currency_local
+
+	/// Global currency of actual_amount_group.
+	column 'Group Currency'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: currency_group
+
+	/// Balance transaction currency of actual_amount_transaction.
+	column 'Transaction Currency'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: currency_transaction
 
 	column 'Company Key'
 		dataType: string

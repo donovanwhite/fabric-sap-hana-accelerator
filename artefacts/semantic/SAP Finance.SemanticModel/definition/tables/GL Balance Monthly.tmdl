@@ -2,17 +2,17 @@
 table 'GL Balance Monthly'
 
 	/// Debit movement in local currency.
-	measure 'Total Debit Amount Local' = SUM('GL Balance Monthly'[Debit Amount Local])
+	measure 'Total Debit Amount Local' = IF(ISEMPTY('GL Balance Monthly') || (HASONEVALUE('GL Balance Monthly'[SAP Client]) && HASONEVALUE('GL Balance Monthly'[Ledger]) && HASONEVALUE('GL Balance Monthly'[Local Currency])), SUM('GL Balance Monthly'[Debit Amount Local]), ERROR("Select one SAP client, ledger and local currency."))
 		formatString: #,##0.00
 		displayFolder: Movement
 
 	/// Credit movement in local currency.
-	measure 'Total Credit Amount Local' = SUM('GL Balance Monthly'[Credit Amount Local])
+	measure 'Total Credit Amount Local' = IF(ISEMPTY('GL Balance Monthly') || (HASONEVALUE('GL Balance Monthly'[SAP Client]) && HASONEVALUE('GL Balance Monthly'[Ledger]) && HASONEVALUE('GL Balance Monthly'[Local Currency])), SUM('GL Balance Monthly'[Credit Amount Local]), ERROR("Select one SAP client, ledger and local currency."))
 		formatString: #,##0.00
 		displayFolder: Movement
 
 	/// Signed net GL movement in local currency.
-	measure 'Total Net Movement Local' = SUM('GL Balance Monthly'[Net Movement Local])
+	measure 'Total Net Movement Local' = IF(ISEMPTY('GL Balance Monthly') || (HASONEVALUE('GL Balance Monthly'[SAP Client]) && HASONEVALUE('GL Balance Monthly'[Ledger]) && HASONEVALUE('GL Balance Monthly'[Local Currency])), SUM('GL Balance Monthly'[Net Movement Local]), ERROR("Select one SAP client, ledger and local currency."))
 		formatString: #,##0.00
 		displayFolder: Movement
 
@@ -24,6 +24,14 @@ table 'GL Balance Monthly'
 	/// Net movement for the immediately preceding available fiscal period.
 	measure 'Prior Period Net Movement' = ```
 			VAR _currentPeriodKey = MAX('Fiscal Period'[Fiscal Period Key])
+			VAR _scopeIsValid =
+				CALCULATE(
+					ISEMPTY('GL Balance Monthly') ||
+						(HASONEVALUE('GL Balance Monthly'[SAP Client]) &&
+						 HASONEVALUE('GL Balance Monthly'[Ledger]) &&
+						 HASONEVALUE('GL Balance Monthly'[Local Currency])),
+					REMOVEFILTERS('Fiscal Period')
+				)
 			VAR _priorPeriodKey =
 				MAXX(
 					TOPN(
@@ -38,10 +46,14 @@ table 'GL Balance Monthly'
 					'Fiscal Period'[Fiscal Period Key]
 				)
 			RETURN
-				CALCULATE(
-					[Total Net Movement Local],
-					REMOVEFILTERS('Fiscal Period'),
-					TREATAS({_priorPeriodKey}, 'Fiscal Period'[Fiscal Period Key])
+				IF(
+					_scopeIsValid,
+					CALCULATE(
+						[Total Net Movement Local],
+						REMOVEFILTERS('Fiscal Period'),
+						TREATAS({_priorPeriodKey}, 'Fiscal Period'[Fiscal Period Key])
+					),
+					ERROR("Select one SAP client, ledger and currency for period comparisons.")
 				)
 			```
 		formatString: #,##0.00
@@ -76,6 +88,24 @@ table 'GL Balance Monthly'
 	measure 'GL Movement Line Count' = SUM('GL Balance Monthly'[Line Item Count])
 		formatString: #,##0
 		displayFolder: Counts
+
+	/// SAP client in the serving grain.
+	column 'SAP Client'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: client
+
+	/// Ledger in the serving grain.
+	column 'Ledger'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: ledger
+
+	/// Currency of the debit, credit and movement amounts.
+	column 'Local Currency'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: currency_local
 
 	column 'Company Key'
 		dataType: string

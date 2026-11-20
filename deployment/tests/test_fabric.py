@@ -129,6 +129,20 @@ class FabricConnectionTests(unittest.TestCase):
                 "conn_sap_finance_sql", "FabricSql"
             )
 
+    def test_hana_connection_uses_gateway_managed_credentials(self) -> None:
+        client = FakeFabricClient({"status": "Online", "errors": []})
+        client.connection.update(
+            connectivityType="OnPremisesGateway",
+            connectionDetails={"type": "SapHana"},
+            credentialDetails={"credentialType": "Basic"},
+        )
+        connection = client.resolve_hana_connection(CONNECTION_ID)
+        client.validate_connection_online(connection)
+        self.assertEqual(connection["id"], CONNECTION_ID)
+        client.connection["connectivityType"] = "ShareableCloud"
+        with self.assertRaisesRegex(FabricApiError, "OnPremisesGateway"):
+            client.resolve_hana_connection(CONNECTION_ID)
+
 
 if __name__ == "__main__":
     unittest.main()
